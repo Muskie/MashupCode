@@ -1,6 +1,7 @@
 <?php
 
 // Since I often had to do this, now I can do it in a single line of code
+// Added this useless comment to test GitHub
 function createArrayFromCSVFile($fileName)
 {
 	$myArray = array();
