@@ -1,5 +1,5 @@
 This is the README file for my web mashup PHP code. It relies on many APIs and other open source projects.
-I've also had to modify two neglected open source code libraries which I've included in my repository. In addition to all 
+I've also had to modify two neglected open source code libraries which I've included in this repository. In addition to all 
 this code you will need:
 
 	The official Facebook PHP code : http://github.com/facebook/php-sdk/
