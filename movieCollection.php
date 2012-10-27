@@ -6,7 +6,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 0.7
+     * @version 0.7.1
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -43,7 +43,7 @@
 	   /**
 		* Initialize a Movie Collection
 		*
-		*  I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
+		* I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
 		* of getting the data into the class, from a CSV file to passing it in as an array to eventually database access...
 		*
 		* @param input can vary and what type determines how the class is initialized/created see parent method.
@@ -58,7 +58,7 @@
 	   /**
 		* Initialize a Movie Collection
 		*
-		*  I haven't overided  the constructer, but by overiding this method, I can add support for the Flickr API using phpFlickr.
+		*  I haven't overided  the constructer, but by overiding this method, I can add support for other APIs
 		*/
 		protected function initializeAPIs()
 		{
@@ -68,11 +68,13 @@
 		}
 		
 		
+		
 	   /**
 		* Searches Rotten Tomatoes dot com for a film matching the title passed in.  Returns the decoded JSON object.
+		* Director's name is used to ensure the correct film is found as many films have had the same title over the years.
 		*
-		* @param string movie title
-		* @param string director's name
+		* @param string
+		* @param string
 		* @return decoded JSON object 
 		*/
 		protected function searchRottenTomatoesFor($title, $director)
@@ -114,6 +116,7 @@
 						  
 						  foreach($searchResults->movies as $movie)  // We're not finding data on movies like I was
 						  {
+						  	// I'm a bit worried as IMDBAPI is in trouble and this method may become much more important that it funcitons perfectly
 						  	$newAPIURL = $movie->links->self;
 						  	$targetURL = $newAPIURL . '?apikey=' . myInfo::MY_ROTTEN_TOMATOES_KEY;
 						  	$nextLookUp = fetchThisURL($targetURL);
@@ -128,7 +131,8 @@
 						  
 						  if($movieInfo == NULL)
 						  {
-						  		$movieInfo = $searchResults->movies[0];  // Trust Rotten Tomatoes regarding best match, this is a fallback option
+						  	$movieInfo = $searchResults->movies[0];  // Trust Rotten Tomatoes regarding best match, this is a fallback option
+						  	// I thought this might always happen, but it will always happen if you don't know the director!
 						  }
 						  
 						  $serializedObject = serialize($movieInfo);
@@ -155,15 +159,15 @@
 	   /**
 		* This method searches YouTube and potentially other video services for a trailer for the passed in film title 
 		*
-		* @param string movie title 
-		* @return string valid HTML for an embedded video clip 
+		* @param string
+		* @return string
 		*/
 		protected function trailerForFilm($filmTitle)
 		{
 			$htmlTag = '';
 			
 			// hierarchacal search, but first match from YouTube is what this returns
-			// YouTube is returning some totally garbage results, made a version which also takes in director AND revise this further
+			// YouTube is returning some totally garbage results, made a version which also takes in director AND revised this further
 			$searchString = $filmTitle . ' Theatrical Trailer'; 
 			$htmlTag = $this->embeddableVideoClipFor($searchString);
 			if(empty($htmlTag))
@@ -222,8 +226,8 @@
 	  /**
 	   * This method searches the Wikipedia for the passed in film title.  I return the entire SimpleXML Object
 	   *
-	   * @param string the search query
-	   * @return the number one result for the search in Wikipedia
+	   * @param string
+	   * @return SimpleXML Object
 	   */
 	   protected function searchWikipediaForFilm($filmTitle)
 	   {
@@ -238,9 +242,10 @@
 	   
 	  /**
 	   * This method searches the IMDB (using the unofficial API) for the passed in film title.  I return the entire SimpleXML Object
+	   * WARNING this web service is in hot water with Amazon owner of IMDB so I am moving away from it towards Rotten Tomatoes 
 	   *
-	   * @param string the search query
-	   * @return the number one result for the search in IMDB
+	   * @param string
+	   * @return SimpleXML Object
 	   */
 	   protected function searchIMDBForFilm($filmTitle)
 	   {

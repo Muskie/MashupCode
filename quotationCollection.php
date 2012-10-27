@@ -1,11 +1,18 @@
 <?php
 
 	/**
-	 * This class is for creating mashups out of collections of quotations, it is a subclass of musicCollection as many of my quotations are song lyrics
+	 * This class is for creating mashups out of collections of quotations, it is a subclass of musicCollection as many of my quotations are song lyrics.
+	 * I pass in a CSV for the mashup I made. Originally I used two columns in the CSV file but in order to improve the results especially for song
+	 * lyrics and film quotations I've added two more columns.
+	 *
+	 * 1st Column : Source 
+	 * 2nd Column : Quotation 
+	 * 3rd Column : one of person, song, or movie 
+	 * 4th Column : for songs the song title, for movies the director's name
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.0
+     * @version 1.1.1
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -42,7 +49,7 @@
 		/**
 		* Initialize a Quotation Collection
 		*
-		*  I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
+		* I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
 		* of getting the data into the class, from a CSV file to passing it in as an array to eventually database access...
 		*
 		* @param input can vary and what type determines how the class is initialized/created see parent method.
@@ -104,10 +111,10 @@
          
         /**
          * Searches for a random collection member, I use the time stamp in order to eliminate repeats when someone browses the entire collection.
-         * They'll still miss some and it will wrap around but I think it is good enough.  I no longer look for details, if I can't find a picture 
-         * it isn't the end of the world.
+         * They'll still miss some quotations and it will wrap around but I think it is good enough.  I no longer look for details, if I can't find a 
+         * picture it isn't the end of the world.
          *
-         * @return the currentMember as array 
+         * @return array 
          */
          public function randomQuotation()
          {	
@@ -121,7 +128,7 @@
          
          
          
-       	 /**
+       	/**
        	 * This method like many before it, searches Amazon's Product API for information about the quotation described in the array.
        	 * I use a third field/column to give hints on what too look for in Amazon and other APIs.  I also cache the results and in some
        	 * cases we may have the information we are looking for already cached locally.  A lot of information can be returned, we usually just use the
@@ -191,7 +198,7 @@
         /**
          * Returns the results from a querry to the Amazon Product API for the current quotation 
          *
-         * @return XML Object from Amazon.com
+         * @return SimpleXML Object
          */
          public function getInfoFromAmazonForCurrentQuotation()
          {
@@ -203,13 +210,13 @@
         /** 
          * Searches the Wikipedia for the passed in quotation in array format.  I use the third column to find better results hopefully.
          *
-         * @param array representing quotation 
+         * @param array
          * @return Simple XML object 
          */
         protected function searchWikipediaForQuotation($quotation)
         {
         	// Should this method be called searchWikipediaFor($quotation)? no one reviews my code anymore and PHP has such poor naming convention adherence
-			// Once again we have a three (or eventually more) pronged approach for finding the best match with the quotation's author
+ 			// Once again we have a three (or eventually more) pronged approach for finding the best match with the quotation's author
 			
 			if($this->isFromFilm($quotation))
 			{
@@ -260,51 +267,89 @@
         }
         
         
+        
         // This next method was stolen from movieCollection.php as I also quote from films frequently
-      /**
-	   * This method searches the IMDB (using the unofficial API) for the passed in film title.  I return the entire SimpleXML Object
-	   *
-	   * @param string the search query
-	   * @return the number one result for the search in IMDB
-	   */
-	   protected function searchIMDBForFilm($filmTitle)
-	   {
-	   		$movieInfo = NULL;
-	   
-			// A lot of people have wanted to search or scrape the IMDB with an API or PHP.  Amazon owns the website so it is possible some of this 
-			// data is in the main Amazon Product Advertising API.  I've already noticed how Wikipedia and Rotten Tomatoes occaisionally have the same 
-			// exact text.
+        // Switched from IMDBAPI which is unofficial to Rotten Tomatoes, which is more hoops, but hopefully less likely to disappear in a lawsuit
+       /**
+		* Searches Rotten Tomatoes dot com for a film matching the title passed in.  Returns the decoded JSON object.
+		* Director's name is used to ensure the correct film is found as many films have had the same title over the years.
+		*
+		* @param string
+		* @param string
+		* @return decoded JSON object 
+		*/
+		protected function searchRottenTomatoesFor($title, $director)
+		{
+			// This method is based upon sample code from http://developer.rottentomatoes.com/docs/read/json/v10/examples
+			// It is also based on methods I've written in musicCollection.php and albumCollection.php 
 			
-			// The default is to return data in JSON format, but XML is also supported.  Here is what a query URL should look like:
-			// http://www.imdbapi.com/?t=True Grit&y=1969 
-			// spaces need to be encoded.
-			
-			// This works well as I always pass in titles of films that I've already found in Rotten Tomatoes, this isn't an official precondition and 
-			// I should probably cache the results just like so much other data.
+			$movieInfo = NULL;
 			
 			// first check that we don't have a local chached version, no reason to get lazy
-			$properFileName = preg_replace("/[^a-zA-Z0-9]/", "", $filmTitle);
+			$properFileName = preg_replace("/[^a-zA-Z0-9]/", "", $title);
 			
 			if(strlen($properFileName) > 0)
 			{
-				$myCache = new Caching("./MashupCache/IMDB/", $properFileName);
+				$myCache = new Caching("./MashupCache/RottenTomatoes/", $properFileName);
 				
 				if ($myCache->needToRenewData())
 				{
 					try
 					{
-						$encodedTitle = urlencode ( $filmTitle );
-						$queryURL = 'http://www.imdbapi.com/?t=' . $encodedTitle . '&plot=full';  // I prefer the long version of the plot
-						$queryResult = fetchThisURL($queryURL);
-						$movieInfo = json_decode($queryResult);
+						$q = urlencode($title); // make sure to url encode query parameters
+						 
+						// construct the query with our apikey and the query we want to make
+						// Rotten Tomatoes changed their API but didn't inform developers...
+						$query = 'http://api.rottentomatoes.com/api/public/v1.0/movies.json?apikey=' . myInfo::MY_ROTTEN_TOMATOES_KEY . '&q=' . $q;
+						
+						$lookUpResult = fetchThisURL($query);
+						
+						// print("<pre>");
+						// print_r($lookUpResult);
+						// print("</pre>");
+						 
+						// decode the json data to make it easier to parse the php
+						$searchResults = json_decode($lookUpResult);
+						
+						if ( ! empty($searchResults))
+						{
+						  // Now need to iterate to the first movie, cache it and return it...
+						  
+						  foreach($searchResults->movies as $movie)
+						  {
+						  	// I'm a bit worried as IMDBAPI is in trouble and this method may become much more important that it funcitons perfectly
+						  	// Fetching self with your API key carefully attached yields more info such as the actual director 
+						  	$newAPIURL = $movie->links->self;
+						  	$targetURL = $newAPIURL . '?apikey=' . myInfo::MY_ROTTEN_TOMATOES_KEY;
+						  	$nextLookUp = fetchThisURL($targetURL);
+						  	$possibleMatch = json_decode($nextLookUp);
+
+							// line below was causing issues, may just simplify to returning first film with title...
+							// Do some films in Rotten Tomatoe not have the directors? Add additional conditionals 
+							if(( ! empty($possibleMatch->abridged_directors[0])) && ( ! empty($director)))
+							{
+								if( strcasecmp($possibleMatch->abridged_directors[0]->name, $director) == 0)
+								{
+									// This is the best match 
+									$movieInfo = $possibleMatch;
+								}
+							}
+						  }
+						  
+						  if($movieInfo == NULL)
+						  {
+						  	$movieInfo = $searchResults->movies[0];  // Trust Rotten Tomatoes regarding best match, this is a fallback option
+						  	// I thought this might always happen, but if you don't know the director it will always default to this!
+						  }
+						  
+						  $serializedObject = serialize($movieInfo);
+						  $myCache->saveSerializedDataToFile($serializedObject);
+						}
 					}
 					catch(Exception $e)
 					{	
 						echo $e->getMessage();  
 					}
-					
-					$serializedObject = serialize($movieInfo);
-					$myCache->saveSerializedDataToFile($serializedObject);
 				}
 				else
 				{
@@ -312,9 +357,9 @@
 					$movieInfo =  $myCache->getUnserializedData();
 				}
 			}
-
+			
 			return $movieInfo;
-	   }
+		}	
 	   
 	   
 	   
@@ -369,6 +414,51 @@
 		 	
 		 	return $arrayVersion[2];
 		 }
+		 
+		 
+		 
+		/**
+		 * Returns the song title of the song being quoted
+		 *
+		 * @return string
+		 */
+		 public function currentQuotationSongTitle()
+		 {
+		 	$songTitle = null;
+		 	
+		 	//If the quotation isn't from a song, they shouldn't be calling this, but let them eat Null.
+		 	
+		 	if($this->isCurrentQuotationFromASong())
+		 	{
+		 		$arrayVersion = $this->currentMemberAsArray();
+		 		$songTitle = $arrayVersion[3];
+		 	}
+		 	
+		 	return $songTitle;
+		 }
+		 
+		 
+		 
+		/**
+		 * Returns the director of the film that is being quoted
+		 *
+		 * @return string
+		 */
+		 public function currentQuotationFilmDirector()
+		 {
+		 	$filmDirector = null;
+		 	
+		 	//If the quotation isn't from a film, they shouldn't be calling this, but let them eat Null.
+		 	
+		 	if($this->isCurrentQuotationFromAFilm())
+		 	{
+		 		$arrayVersion = $this->currentMemberAsArray();
+		 		// This next line is also causing trouble for a film....
+		 		$filmDirector = $arrayVersion[3];
+		 	}
+		 	
+		 	return $filmDirector;
+		 }
 	   
 	   
 	   
@@ -401,8 +491,10 @@
 			
 			$isTweetable = false;
 			
-			if ($this->currentQuotationActualLength() < 120)
+			if ($this->currentQuotationActualLength() < 116)
 			{
+				// Probably needs to be slightly shorter to leave room for a link and a hashtag.
+				// space 18 space #qotd = 25 characters so less than 116, should be new norm not < 120
 				$isTweetable = true;
 			}
 			
@@ -425,27 +517,37 @@
 	   		
 	   		if($this->isCurrentQuotationFromAFilm())
 			{
-				// Is Amazon better than IMDB for cover image probably.
-				$amazonXML = $this->getInfoFromAmazonForCurrentQuotation();
-				$imageURL = $amazonXML->Items->Item->MediumImage->URL;  // Was LargeImage, throws error for "Fitzcaraldo"
+				$movieInfo = $this->searchRottenTomatoesFor($this->currentQuotationSource(), $this->currentQuotationFilmDirector());
+				$imageURL = $movieInfo->posters->detailed; // Could use a smaller image... see http://developer.rottentomatoes.com/docs
 			}
 			else if($this->isCurrentQuotationFromASong())
 			{
 				// We have a quotation from a song thus by a songwriter
-				// Since I changed the parent class, I'm going to use Last.fm for this image.
 				$lastFMImageArray = $this->getCurrentArtistPhotoFromLastFM();
-				$imageURL = $lastFMImageArray['largeURL'];  
+				
+				if( ! empty($lastFMImageArray))
+				{
+					// Not sure why this didn't work for Bob Marley, Last.fm may have made changes and no one maintains the PHP API code 
+					try
+					{
+						$imageURL = $lastFMImageArray['largeURL'];  
+					}
+					catch(Exception $e)
+					{
+						// No large image for Bob Marley and possibly others...
+						// Just catch exception and let it try Flickr where there is an image of Bob Marley and most everything...
+					}
+				}
 			}
 			else
 			{
-				// We have a quotation by a person or ficticious person
-				// Now I'm worried Amazon will return strange stuff and Wikipedia's image is too small, why not Flickr?
-				// Flickr returns strange results for long dead people especially...
+				// We have a quotation by a person or ficticious character
+				// Amazon isn't perfect but testing revealed it was superior to Wikipedia 
 				$amazonXML = $this->getInfoFromAmazonForCurrentQuotation();
 				if ((( ! empty($amazonXML)) 
 					&& ($amazonXML->Items->TotalResults > 0)))
 				{
-					$imageURL = $amazonXML->Items->Item->MediumImage->URL;  // Was LargeImage
+					$imageURL = $amazonXML->Items->Item->MediumImage->URL;
 				}
 			}
 			
@@ -456,7 +558,7 @@
 				$flickrResults = $this->getCurrentArtistPhotosFromFlickr();
 				if ( ! empty($flickrResults['photo']))
 				{
-					$imageURL = $flickrResults['photo'][0]['url_s'];  // was url_m
+					$imageURL = $flickrResults['photo'][0]['url_s'];
 					// Got Undefined Offset error once...
 					// May have to surround this with a try catch construct
 				} 
@@ -472,20 +574,20 @@
 	    /**
          * Returns the current quotation's ASIN which is a unique identifier used for Amazon.com in their webstore.  
          *
-         * @return String
+         * @return string
          */
          private function currentQuotationASIN()
          {
-         	$dvdASIN = null;
+         	$productASIN = null;
          	
-         	$dvdXML = $this->getInfoFromAmazonForCurrentQuotation();
+         	$productXML = $this->getInfoFromAmazonForCurrentQuotation();
          	
-         	if($dvdXML->Items->TotalResults > 0) 
+         	if($productXML->Items->TotalResults > 0) 
          	{
-         		$dvdASIN = $dvdXML->Items->Item->ASIN;
+         		$productASIN = $productXML->Items->Item->ASIN;
          	}
          	
-         	return $dvdASIN;
+         	return $productASIN;
          }
          
          
@@ -527,9 +629,7 @@
          public function currentQuotationAmazonAssociateBadge()
          {
             $htmlTag = NULL;
-            
-            // This can be a lot clever based on what type of quotation it is...
-            
+                        
             if($this->isCurrentQuotationFromASong())
             {
             	// This is where I could get clever...
@@ -558,7 +658,8 @@
          
          
         /**
-         * This method searches various APIs to find a short bunch of text describing the source of the quotation 
+         * This method searches various APIs to find a short bunch of text describing the source of the quotation. Despite best efforts
+         * it isn't always possible to find a biography.
          *
          * @return string 
          */
@@ -568,27 +669,32 @@
 	   		
 	   		if($this->isCurrentQuotationFromAFilm())
 			{
-				// We have a quotation from a movie, I like the IMDB for the longer synopsis 
-				$imdbInfo = $this->searchIMDBForFilm($this->currentQuotationSource());
-				$bio = $imdbInfo->Plot;
+				// We have a quotation from a movie, switching to Rotten Tomatoes for movie related info
+				$movieInfo = $this->searchRottenTomatoesFor($this->currentQuotationSource(), $this->currentQuotationFilmDirector());
+				/*
+				print("<pre>");
+				print_r($movieInfo);
+				print("</pre>");
+				*/
+				// Some films have no synopsis in Rotten Tomatoes, can't use critics_consensus instead as it does not always exist for every result either!
+				$bio = $movieInfo->synopsis;
 			}
 			else if($this->isCurrentQuotationFromASong())
 			{
-				// We have a quotation from a song thus by a songwriter
 				// Going with Last.fm here which might just use the description in Wikipedia anyway...
 				$lastFMInfo = $this->getArtistInfoFromLastFM($this->currentQuotationSource());
-				$bio = $lastFMInfo["bio"]["summary"];  // Possibly emtpy for obscure artists, but I think I'm alright
+				$bio = $lastFMInfo["bio"]["summary"];  // Possibly emtpy for obscure artists
 			}
 			else
 			{
-				// Wikia descriptions are so brief, tempted to try Amazon...
+				// Wikia descriptions are so brief, tempted to try Amazon instead...
 				$wikiXML = $this->wikipediaInfoForCurrentQuotation();
 				$bio = $wikiXML->Section->Item->Description;
 			}
 			
 			if(empty($bio))
-			{
-				// This happens sometimes
+			{  
+				// This happens sometimes, Rotten Tomatoes seems to have blank sysnopsis, but Wikipedia can also let you down, so no bio is possible
 				$wikiXML = $this->wikipediaInfoForCurrentQuotation();
 				$bio = $wikiXML->Section->Item->Description;
 			}
@@ -606,39 +712,8 @@
          public function facebookLikeButtonForCurrentQuotationSource()
          {
          	// I've slowly started using the fancier like buttons which require additional data to be put inside the <head> portion of a webpage
+         	// Thus I no longer use this method in my current favourite quotation mashup
          	return $this->facebookLikeButtonFor($this->currentQuotationSource());
-         }
-         
-         
-        
-        /**
-         * NOT IMPLEMENTED!
-         *
-         * This method returns a new style Facebook Like button which should allow people to share the entire quotation, plus author and a link 
-         * with their friends on Facebook. It doesn't use an iFrame and Facebook has a second bit of HTML you are supposed to put anywhere on your 
-         * page but they recommend just inside the <body> tag.
-         *
-         * @return string of valid HTML 
-         */
-         public function facebookLikeButtonForCurrentQuotation() 
-         {
-			// There is more code that needs to be included, they want it just under the <body> tag, but it can appear elsewhere...
-			/*
-			<div id="fb-root"></div>
-			<script>(function(d, s, id) {
-			  var js, fjs = d.getElementsByTagName(s)[0];
-			  if (d.getElementById(id)) return;
-			  js = d.createElement(s); js.id = id;
-			  js.src = "//connect.facebook.net/en_US/all.js#xfbml=1&appId=139511426095383";
-			  fjs.parentNode.insertBefore(js, fjs);
-			}(document, 'script', 'facebook-jssdk'));</script>
-			*/
-			
-			// $html .= '<div class="fb-like" data-href="' . urlencode($item->get_permalink()) . '" data-send="false" data-width="200" data-show-faces="true"></div></li>'; // Unsure what is a good width
-		
-			// It gets worse, in order to control what appears on a wall, you have to use meta tags specifically the description...
-			// I had to build this functionality into the mashup not into the collection class!
-		
          }
          
          
@@ -655,22 +730,18 @@
 	   		if($this->isCurrentQuotationFromAFilm())
 			{
 				// I did a lot of expirementation trying to find the trailer for films using my YouTube search code.  It is less than 100% successful. 
-				// And it really helps if you have the director.  I do have the director from IMDB...
-				$imdbInfo = $this->searchIMDBForFilm($this->currentQuotationSource());
-				$searchString = 'theatrical trailer for "' . $imdbInfo->Title . '" directed by ' . $imdbInfo->Director;
+				$searchString = 'theatrical trailer for "' . $this->currentQuotationSource() . '" directed by ' . $this->currentQuotationFilmDirector();  // need to include director...
 				$clipHTML = $this->embeddableVideoClipFor($searchString);
 			}
 			else if($this->isCurrentQuotationFromASong())
 			{
-				// We have a quotation from a song thus by a songwriter
-				$searchString = '"' . $this->currentQuotationSource() . ' live"';
+				$searchString = '"' . $this->currentQuotationSource() . ' ' . $this->currentQuotationSongTitle() . '"';
 				$clipHTML = $this->embeddableVideoClipFor($searchString);
 			}
 			else
 			{
 				// We have a quotation by a person or ficticious person
-				// This is proving very disappointing especially for the long dead
-				// Try using extra keywords from Wikipedia...
+				// This is proving very disappointing especially for the long dead, best not to call this method for non-films and non-songs
 				$wikiXML = $this->wikipediaInfoForCurrentQuotation();
 				$searchString = $this->currentQuotationSource() . ' ' . $wikiXML->Section->Item->Description;
 				$clipHTML = $this->embeddableVideoClipFor($searchString);
@@ -691,7 +762,7 @@
          
          
         /**
-         * This method creates a fully functional "Tweet This" button.  You don't need to register an app at Twitter to just do this.
+         * This method creates a fully functional "Tweet This" button.  You don't need to register an app at Twitter to do this.
          * It uses Twitter's latest Javascript but takes in two arguments, both strings, apparently you shouldn't URL encode the URL.
          *
          * More information on Twitter buttons can be found here:
@@ -735,7 +806,7 @@
          * This method checks to see if the passed in quotation (array) is from a film by checking the third column 
          *
          * @param array
-         * @return bool 
+         * @return boolean 
          */
          public function isFromFilm($quotation)
          {
@@ -755,7 +826,7 @@
         /**
          * This is a convience method to see if the current quotation is from a film 
          *
-         * @return bool
+         * @return boolean
          */
         public function isCurrentQuotationFromAFilm()
         {
@@ -768,7 +839,7 @@
          * This method checks to see if the passed in quotation (array) is from a song by checking the third column 
          *
          * @param array
-         * @return bool 
+         * @return boolean 
          */
          public function isFromSong($quotation)
          {
@@ -786,7 +857,7 @@
          
          
         /**
-         * This is a convience method to see if the current quotation is from a film 
+         * This is a convience method to see if the current quotation is from a song
          *
          * @return bool
          */
@@ -868,21 +939,21 @@
 						if($this->isFromFilm($quotation))
 						{
 							// Here we want media to be movie 
-							$formattedSource = str_replace(' ', '+', $quotation[0]);  // May have to do a lot more formatting than this!
+							$formattedSource = str_replace(' ', '+', $quotation[0]);
 							$iTunesSearchString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedSource . '&entity=movie&media=movie';
 
 						}
 						else if ($this->isFromSong($quotation))
 						{
 							// This can be the same give or take as the parent class, searching for an artist page.
-							$formattedArtistString = str_replace(' ', '+', $quotation[0]);  // May have to remove other characters, but I don't in the parent...
+							$formattedArtistString = str_replace(' ', '+', $quotation[0]);
 							$iTunesSearchString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedArtistString . '&entity=musicArtist';
 						}
 						else
 						{
 							// This is going to be less likely to return results from the iTunes store, but it has so much stuff so who knows
 							// Going to go with media of type ebook here 
-							$formattedSource = str_replace(' ', '+', $quotation[0]);  // May have to do a lot more formatting than this!
+							$formattedSource = str_replace(' ', '+', $quotation[0]);
 							$iTunesSearchString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedSource . '&entity=ebook&media=ebook';
 						}
 						$searchResult = fetchThisURL($iTunesSearchString);
@@ -954,7 +1025,7 @@
 				}
 				else
 				{
-					// I seem to be smarter today, than the day I gave up trying to fix this...
+					// This threw an error on a Warner Herzog quotation, need to look into more perhaps...
 					$iTunesArtistLink = $iTunesInfo->results[0]->artistViewUrl; 
 				}
 				

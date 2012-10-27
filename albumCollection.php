@@ -3,7 +3,7 @@
      * Class to create a collection of records/albums/cds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 1.3
+     * @version 1.3.1
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * This class mainly returns information in the form of strings (sometimes JSON encoded), arrays, and XML objects
@@ -53,7 +53,7 @@
 	   /**
 		* Initialize an Album Collection
 		*
-		*  I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
+		* I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
 		* of getting the data into the class, from a CSV file to passing it in as an array to eventually database access...
 		*
 		* @param input can vary and what type determines how the class is initialized/created see parent method.
@@ -67,7 +67,7 @@
 	   /**
 		* Initialize a the APIs
 		*
-		*  I haven't overided  the constructer, but by overiding this method, I can add support for different APIs at different levels.
+		* I haven't overided  the constructer, but by overiding this method, I can add support for different APIs at different levels.
 		*/
 		protected function initializeAPIs()
 		{
@@ -79,7 +79,7 @@
 		/**
 		 * This is a method that shouldn't be called much as it is a brute force dump of the entire album collection
 		 * fetching the images from Amazon and linking to the artist profile on Last.fm, this could be a lot of 
-		 * calls to APIs, but it is what I originally thought about doing, so I implemented it as further proof of concept
+		 * calls to APIs, but it is what I originally thought about doing, so I implemented it as further proof of concept.
 		 * 
 		 * Warning: Calling this method on a collection of more than single digits is really slow, not sure how I'll speed it up...
 		 * 
@@ -100,7 +100,7 @@
 				// Now we at least have a valid XML response from Amazon regardless of whether we found anything useful
 				if(( ! empty($amazonXML)) && ($amazonXML->Items->TotalResults > 0))
 				{
-					// we have at least one result returned, just go with first and presumeably most accurate result
+					// We have at least one result returned, just go with first and presumeably most accurate result
 					$albumCoverURL = $amazonXML->Items->Item->MediumImage->URL;
 					$artistName = $albumInfo[0];
 					
@@ -233,7 +233,6 @@
 				// It doesn't need to be renewed so use local copy of array
 				$musicBrainzRelease =  $myCache->getUnserializedData();
 			}
-
 			
 			return $musicBrainzRelease;
          }
@@ -334,6 +333,7 @@
          	}
          	else
          	{
+         		// I'm less enamoured with this idea, perhaps return a link to a search or error page.
          		$amazonProductURL = "#"; // return hash instead of null or empty string so it just reloads the page
          	}
          	
@@ -415,7 +415,7 @@
     
 			if ( ($iTunesInfo != NULL) && ($iTunesInfo->resultCount > 0))
 			{
-				$iTunesArtistLink = $iTunesInfo->results[0]->artistLinkUrl;
+				$iTunesArtistLink = $iTunesInfo->results[0]->artistLinkUrl; // This through an exception for Steve Earle Jeruselem
 				$openLinkTag = '<a href="' . $iTunesArtistLink . '" >';
 				$closeLinkTag = '</a>';
 				$iconTag = '<img src="' . myInfo::APPLE_ICON_URL . '" class="iconImage" />';
@@ -481,7 +481,7 @@
          
          
         /**
-         * Returns the current album in array form based on currentAlbumIndex
+         * Returns the current album as an array based on currentMemberIndex
          * Made this private to obscure the underlying array from users of this class.
          *
          * @return array
@@ -593,13 +593,11 @@
          			}
          			catch (Exception $e)
          			{
-         				// This time I want to see 'em at least for a while 
+         				// This time I want to see the error at least while debugging  
          				// throw new Exception($e->getMessage);
          			}
          			
-         			// If I can't find a bio in Amazon may have to try Google!
-         			// But not tonight...  maybe some other API a people finding one or something... Wikipedia perhaps.
-         			// Now have Wikipedia integration added here.  Difficult to test this deeply into this method.
+         			// If I still can't find a bio, try Wikipedia 
          			
          			$wikiXML = $this->searchWikipediaFor($artistName);
 					$artistBio = $wikiXML->Section->Item->Description;
@@ -636,8 +634,7 @@
          */
          public function randomAlbumNotByVarious()
          {
-         	// This will mean I am more likely to get useful data from most APIs and then I can mash it up.
-         	$validAlbum = array();  // is this valid PHP?
+         	$validAlbum = array(); 
          	
          	$randomAlbum = $this->randomAlbumAsArray();
          	if( ! $this->isCurrentAlbumByVarious() )
@@ -681,7 +678,7 @@
             	$largeImageURL = $this->currentAlbumsLargeImageURL();
              } 
              
-             return $this->currentAlbumAsArray();  // We've found one that satisfied conditions and it is now the currentAlbum
+             return $this->currentAlbumAsArray();  // We've found one that satisfied the conditions and it is now the currentAlbum
          }
          
 
@@ -717,7 +714,7 @@
          			{
          				$artistInfo = $this->currentAlbumArtistInfoFromLastFM();
          				// Not only do we want $artistInfo we want it to have at least some data
-         				if(!empty($artistInfo))
+         				if( ! empty($artistInfo))
          				{
 							$hasArtistInfo = true;
 						}
@@ -728,7 +725,7 @@
          			  // In this case we do nothing and let the while loop iterate again...
          			  // Lets try the album next door
          			  $this->goToNextAlbum();
-         			  $hasSmallImage = false;  // Wasn't doing this before.  Still not so sure on just stepping over, no guarantee it has Large Imaget etc.
+         			  $hasSmallImage = false;  // Wasn't doing this before.  Still not so sure on just stepping over, no guarantee it has Large Image etc.
          			}
          		}
          		else
@@ -943,7 +940,7 @@
          protected function findCurrentAlbumTracksInITunes()
          {
          
-         // Needs to call parent method now...
+            // Needs to call parent method now...
          
          	$artistName = $this->currentAlbumArtist();
 			$albumTitle = $this->currentAlbumTitle();
@@ -1347,7 +1344,7 @@
          * This returns the first album for which we can find a valid large image url in Amazon.com
          * It also advances the currentAlbumIndex so you can then call getNextValidLargeAlbumCoverImageURL()
          *
-         * @return String
+         * @return string
          */
         public function getFirstValidLargeAlbumCoverImageURL()
         {
@@ -1360,7 +1357,7 @@
          * This returns the first album for which we can find a valid medium image url in Amazon.com
          * It also advances the currentAlbumIndex so you can then call getNextValidMediumAlbumCoverImageURL()
          *
-         * @return String
+         * @return string
          */
         public function getFirstValidMediumAlbumCoverImageURL()
         {
@@ -1373,7 +1370,7 @@
          * This returns the first album for which we can find a valid small image url in Amazon.com
          * It also advances the currentAlbumIndex so you can then call getNextValidSmallAlbumCoverImageURL()
          *
-         * @return String
+         * @return string
          */
         public function getFirstValidSmallAlbumCoverImageURL()
         {
@@ -1382,7 +1379,7 @@
         
         
         
-        // Again I made a private function do the work after I got it to work for one size
+        // Again I made a private function to do the work after I got it to work for one size
         // Other functions call this one passing in the correct valid image sizes...
         private function getFirstValidCoverImageURLOf($size)
         {
@@ -1420,7 +1417,7 @@
          * This returns the first album for which we can find a valid small image url
          * It also advances the currentAlbumIndex as many times as necessary or until the end of the array
          *
-         * @return String
+         * @return string
          */
         public function getNextValidSmallAlbumCoverImageURL()
         {     	
@@ -1433,7 +1430,7 @@
          * This returns the first album for which we can find a valid medium image url in Amazon.com
          * It also advances the currentAlbumIndex as many times as necessary or until the end of the array
          *
-         * @return String
+         * @return string
          */
         public function getNextValidMediumAlbumCoverImageURL()
         {     	
@@ -1446,7 +1443,7 @@
          * This returns the first album for which we can find a valid large image url in Amazon.com
          * It also advances the currentAlbumIndex as many times as necessary or until the end of the array
          *
-         * @return String
+         * @return string
          */
         public function getNextValidLargeAlbumCoverImageURL()
         {     	
@@ -1457,7 +1454,7 @@
         
         private function getNextValidAlbumCoverImageURLOf($size)
         {
-        	$this->goToNextAlbum();  // First advance to the next Item 
+        	$this->goToNextAlbum();  // First advance to the next item 
         	
         	if ($this->isCurrentAlbumTheLast())
         	{
@@ -1504,9 +1501,10 @@
         }
          
          
-         // Compilation albums screw up album getInfo fetches to Last.fm due to there being an actual band called "various"
-         private function isCurrentAlbumByVarious()
-         {
+         
+        // Compilation albums screw up album getInfo fetches to Last.fm due to there being an actual band called "various"
+        private function isCurrentAlbumByVarious()
+        {
          	$byVarious = false;
          	$currentAlbum = $this->currentAlbumAsArray();
          	if(strcasecmp($currentAlbum[0], "various") == 0)  // Changed to case insensitive not sure if that is a big deal after all
@@ -1515,6 +1513,6 @@
          	}
          	
          	return $byVarious;
-         }
+        }
 	}
 ?>

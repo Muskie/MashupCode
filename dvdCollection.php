@@ -3,7 +3,7 @@
      * Class to create a collection of dvds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 0.8
+     * @version 0.8.1
      * This is a simple subclass of mCollection.php to show that it could be used for mashups not related to music.
      * 
      * This class inherrits from movieCollection.php which inherrits from mCollection.php
@@ -37,9 +37,9 @@
 		const NO_ROTTEN_TOMATOE_POSTER_URL = "http://images.rottentomatoescdn.com/images/redesign/poster_default.gif";
 	
 	   /**
-		* Initialize an DVD Collection
+		* Initialize a DVD Collection
 		*
-		*  I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
+		* I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
 		* of getting the data into the class, from a CSV file to passing it in as an array to eventually database access...
 		*
 		* @param input can vary and what type determines how the class is initialized/created see parent method.
@@ -53,7 +53,7 @@
 	   /**
 		* Initialize a the APIs
 		*
-		*  I haven't overided  the constructer, but by overiding this method, I can add support for different APIs at different levels.
+		*  I haven't overided the constructer, but by overiding this method, I can add support for different APIs at different levels.
 		*/
 		protected function initializeAPIs()
 		{
@@ -204,11 +204,11 @@
          	$isInAmazon = false;
          	$isNotByVarious = false;
          	
-         	// My mashup relies on this method to choose random DVDs/films, the problem I have is the DVD title not the film title, I needed a method 
+         	// My mashup relies on this method to choose random DVDs/films, the problem is I have the DVD title not the film title, I needed a method 
          	// that strips stuff from the data in the second array cell.
          	
-         	// It is possible for this too run until timeout of 30 seconds when say Rotten Tomatoes changes their API, so I rewrote the method to 
-         	// only check each member of the collection once then throw an error.
+         	// It is possible for this to run until timeout of 30 seconds when say Rotten Tomatoes suddenly changes their API, so I rewrote the method 
+         	// to only check each member of the collection once then throw an error.
          	
          	$newIndex = rand(0, ($this->collectionSize() - 1));
          	$this->currentMemberIndex = $newIndex;
@@ -223,7 +223,6 @@
 				$director = $aDVD[0];
 				$betterFilmTitle = $this->possibleFilmTitleFor($dvdTitle);
 				$amazonXML = $this->getXMLFromAmazon($dvdTitle, $director);
-				// Rotten Tomatoes is not returning useful information all of a sudden, they changed their API but didn't inform me...
 				$movieInfo = $this->searchRottenTomatoesFor($betterFilmTitle, $director); 
 		
 				if ((( ! empty($amazonXML)) 

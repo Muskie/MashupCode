@@ -7,7 +7,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.3
+     * @version 1.3.1
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -86,10 +86,10 @@
 	
 		
 		
-		/**
+	   /**
 		* Initialize a Music Collection
 		*
-		*  I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
+		* I'm not sure if this is required or if I will do anything, the original constructor was always designed to handle various ways
 		* of getting the data into the class, from a CSV file to passing it in as an array to eventually database access...
 		*
 		* @param input can vary and what type determines how the class is initialized/created see parent method.
@@ -101,10 +101,10 @@
 	
 	
 		
-		/**
+	   /**
 		* Initialize a Music Collection
 		*
-		*  I haven't overided  the constructer, but by overiding this method, I can add support for other APIs
+		* I haven't overided the constructer, but by overiding this method, I can add support for other APIs
 		*/
 		protected function initializeAPIs()
 		{
@@ -117,7 +117,7 @@
 		}
 		
 			
-		// This method is the one place so far I make artist data requests from Last.fm 
+		 // This method is the one place so far I make artist data requests from Last.fm 
 		 // The advantage of doing it in only one place, besides less code is I knew exactly where to put in the caching...
 		 // It is public as I use it in my favouriteSongs mashup and that is a bit of a hack
 		 public function getArtistInfoFromLastFM($artistName)
@@ -468,7 +468,7 @@
 						$lookUp = json_decode($lookUpResult);
 						if ( ! empty($lookUp))
 						{
-							$resultCount = $lookUp->resultCount;  // This isn't always correct, maybe have to check more carefully the result returned...
+							$resultCount = $lookUp->resultCount;  // This isn't always correct, maybe have to check more carefully what was returned...
 						
 							$i = 1;  // First result is the artist not an album, I already had the artist info.
 							$collectionID = null;
@@ -678,7 +678,7 @@
 		 
 		/**
 		 * This method searches just iTunes for now, for the most popular track for the title, It is probably going to assume it is a song title but it 
-		 * could be an album title or any string.  It then returns the direct link to an audio preview 
+		 * could be an album title or any string.  The method then returns the direct link to an audio preview 
 		 * eventually I may search other sources, but iTunes is the only one which I can get direct links to an audio sample.
 		 *
 		 * @param string artist name
@@ -823,7 +823,7 @@
 		
 		
 	   
-		/**
+	   /**
 		* This method I created as part of my favourite or loved tracks mashup.  The code is for creating an instance of this
 		* class populated by the albums that correspond to a user's loved tracks in last.fm.  By putting the code here as a static method
 		* future users of this class can populate their music collection with this info too.
@@ -963,6 +963,7 @@
 			
 			return $iTunesTracks;
 		 }
+		 
 		 
 		 // Trying to make my code more modular, but still retain versatility.  Not sure which method should be long or how many methods 
 		 // I should be writing or rewriting...  That's the problem working all alone.

@@ -1,19 +1,20 @@
 <?php
     /**
      * Class to facilitate the creation of web mashups using various APIs.
-	 * @author Muskie McKay <andrew@muschamp.ca>
+     * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4
-	 * @copyright Muskie McKay
-	 * @license MIT
-	 *
+     * @version 1.4.1
+     * @copyright Muskie McKay
+     * @license MIT
+     *
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * However due to unending unemployment I decided to make an even more versatile class to represent a collection of 
      * anything you might want to make a mashup of: music, movies, quotations etc.  
      * 
-     * There are subclasses musicCollection.php, albumCollection.php, dvdCollection.php, movieCollection.php , and quotationCollection.php that should 
-     * do the heavy lifting as I try to get PHP to be even more OOP. Instructions and examples are found:
+     * There are subclasses musicCollection.php, albumCollection.php, dvdCollection.php, movieCollection.php , and 
+     * quotationCollection.php that should do the heavy lifting as I try to get PHP to be even more OOP. Instructions and examples 
+     * are found:
      * http://www.muschamp.ca/Muskie/webMashups.html
      *
      */  
@@ -68,7 +69,7 @@
          * This is often useful information to have, but it will also let me use the array as a circular linked list 
          * Which will open up some interesting options graphically.
          * @access protected
-         * @var positive integer 
+         * @var int
          */
          protected $currentMemberIndex = 0;
          
@@ -233,7 +234,7 @@
 		   
 		   
 		/**
-         * Returns the number of albums in our collection
+         * Returns the number of members in our collection
          * 
          * @return int
          */
@@ -258,8 +259,8 @@
          
         /**
          * Sets $currentMemberIndex to be a random number.
-         * I return the information as an array but with minimal information contained currently.  Once it is the the current member you can fetch lots 
-         * of info.
+         * I return the information as an array but with minimal information contained currently.  
+         * Once it is the the current member you can fetch lots of info.
          *
          * @return array
          */
@@ -434,7 +435,6 @@
 <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
          	*/
          	
-         	// I want to tweet things that are longer, I'm waiting on some other APIs to authorize me, one other option is to not have a URL or Data-via, just use all 140 characters for text...
          	$tweetThisButtonCode = null;
          	$twitterDataURL = myInfo::MY_HOME_PAGE;
          	
@@ -475,13 +475,14 @@
 			<a href="http://pinterest.com/pin/create/button/?url=http%3A%2F%2Fwww.muschamp.ca%2F&media=http%3A%2F%2Fwww.muschamp.ca%2Fimage.jpg&description=whatever" class="pin-it-button" count-layout="horizontal"><img border="0" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a>
 			Where you want the button ie here, and 
 			<script type="text/javascript" src="//assets.pinterest.com/js/pinit.js"></script> 
+			elsewhere near where <head> meets <body>
 			*/
 			// Not sure if the first two tests are necessary, they were necessary in my news aggregator, so I'm leaving them in for now...
 			if(( ! strpos($imageURL, '+')) && ( ! strpos($imageURL, '%'))
 				&& (preg_match('|^http?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $imageURL)) && (preg_match('|^http?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $pageURL)))
 			{
 				// If I don't display a valid image, no sense in showing a Pin It button 
-				$html = '<a href="http://pinterest.com/pin/create/button/?url=' . $pageURL . '&media=' . $imageURL . '&description=' . strip_tags($text) . '" class="pin-it-button" count-layout="horizontal"><img border="0" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a>';
+				$html = '<a href="http://pinterest.com/pin/create/button/?url=' . $pageURL . '&media=' . $imageURL . '&description=' . strip_tags($text) . '" class="pin-it-button" count-layout="horizontal" target="_blank"><img border="0" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a>';
 			}
 			
 			return $html;
@@ -528,7 +529,7 @@
          
          
         /**
-         * This method searches Topsy to find the biggest expert on the social web on the passed in subject.
+         * This method searches Topsy to find the biggest expert in social media for the passed in subject.
          *
          * @param string subject
          * @return string the experts Twitter account
