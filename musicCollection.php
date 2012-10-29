@@ -7,7 +7,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.3.1
+     * @version 1.4
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -245,6 +245,7 @@
 			
 			return $result;  
 		 }
+		 
 			 
 			 
 	    /**
@@ -297,6 +298,40 @@
 			
 			return $iTunesInfo;
 		 }
+		 
+		 
+		 
+		 // I made this method to add modularity to trackBuyLinkFor
+		 private function getBuyLinkFromITunesFor($artistName, $albumTitle)
+		 {
+		 	$buyLink = '#'; // This has become a defacto error condition, originally I just wanted to reload the page href='#'
+		 	
+		 	try
+			{
+				// Should make this it's own method perhaps 
+				$iTunesArtistInfo = $this->getArtistResultsFromITunes($artistName);
+				
+				if (($iTunesArtistInfo != null) && (count($iTunesArtistInfo->results) > 0)) 
+				{
+					$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $albumTitle);
+					
+					if($iTunesAlbumInfo != null)
+					{
+						if( $iTunesAlbumInfo->resultCount > 0)
+						{
+							$buyLink = $iTunesAlbumInfo->results[0]->collectionViewUrl;        				
+						}
+					}
+				}
+			}
+			catch (Exception $e)
+			{
+				// Buy links aren't as difficult to find as track previews but if an exception is thrown, just catch and try another web service.
+			}
+			
+			return $buyLink;
+		 }
+		 
 			 
 			 
 		// This is the worker function for a method that I wrote to get the Facebook Badge, but then retired it in preference to the 'like' button
@@ -664,9 +699,10 @@
 				{		 			
 		 			// Result number one is the artist info again, which I already had.
 		 			// Result number two is the most popular track by an artist so return that previewUrl 
-		 			if ( ! empty($lookUp->results))
+		 			// For Luke Doucet "Broken One" neither this enlarged if statement nor the try & catch structure is stopping the offset Notice
+		 			if (( ! empty($lookUp->results)) && (is_array($lookUp->results)) && (count($lookUp->results)))
 		 			{
-		 				$previewURL = $lookUp->results[1]->previewUrl;
+		 				$previewURL = $lookUp->results[1]->previewUrl;  // This generates a Notice for Luke Doucet "Broken One"
 		 			}
 				}
 		 	}
@@ -819,6 +855,21 @@
 			}
 			
 			return $artistName;
+		 }
+		 
+		 
+		 // Bad data in is a possability so rather than have currentArtist be null I return "unknown" this method checks for this 
+		 // Not sure if this method should be public, private, or protected... There is no easy way to improve my CD Cover Gallery 
+		 protected function isCurrentArtistUnknown()
+		 {
+		 	$isUnknown = false;
+		 	
+		 	if (strcmp($this->currentArtist(), "unknown") == 0)
+		 	{
+		 		$isUnknown = true;
+		 	}
+		 	
+		 	return $isUnknown;
 		 }
 		
 		
@@ -993,7 +1044,7 @@
 		* It is also possible to make money referring people to the iTunes Music Store but not if you are a Canadian.  Last.fm is my
 		* third choice, it provides buy links too, but Last.fm keeps the money.
 		*
-		* $songTitle is optional, it makes the method a little more versatile, how to do this in PHP though?
+		* $songTitle is optional, it makes the method a little more versatile
 		*
 		* @param string
 		*
@@ -1015,7 +1066,7 @@
 			// probably have to do another search knowing Amazon...
 			// The above returned a lot more tracks or at least ASINs than I wanted.
 	
-			if( count($amazonSearchResults->Items->Item) > 0)
+			if(count($amazonSearchResults->Items->Item) > 0)
 			{
 				// We have multiple tracks or at least ASINs, go with first one.
 				$moreAmazonXML = $this->amazonAPI->getItemByAsin($amazonSearchResults->Items->Item[0]->ASIN);
@@ -1023,31 +1074,10 @@
 				$buyLink = $moreAmazonXML->Items->Item->DetailPageURL;
 			}
 			
-			if ( ! empty($buyLink))
+			if (empty($buyLink))
 			{
 				// Try finding link in iTunes
-				try
-				{
-					$iTunesArtistInfo = $this->getArtistResultsFromITunes($artistName);
-					
-					if (($iTunesArtistInfo != null) && (count($iTunesArtistInfo->results) > 0)) 
-					{
-						$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $albumTitle);
-						
-						if($iTunesAlbumInfo != null)
-						{
-							if( $iTunesAlbumInfo->resultCount > 0)
-							{
-								$buyLink = $iTunesAlbumInfo->results[0]->collectionViewUrl;        				
-							}
-						}
-					}
-				}
-				catch (Exception $e)
-				{
-					// Buy links aren't as difficult to find as track previews but if an exception is thrown, just catch and try another web service.
-					
-				}
+				$buyLink = $this->getBuyLinkFromITunesFor($artistName, $albumTitle);
 			}
 			
 			// Last choice is Last.fm for a buy link as they keep the money from the referral 

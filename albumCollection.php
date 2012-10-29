@@ -3,7 +3,7 @@
      * Class to create a collection of records/albums/cds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 1.3.1
+     * @version 1.4
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * This class mainly returns information in the form of strings (sometimes JSON encoded), arrays, and XML objects
@@ -379,6 +379,39 @@
 			
 			return $productURL;
         }
+        
+        
+        
+        /**
+         * This method will return the best purchase URL for the currentAlbum. Best being the one most likely to earn a commission.
+         *
+         * Amazon 
+         * BestBuy 
+         * iTunes 
+         * LastFM
+         *
+         * Canadians can not earn a commision from iTunes Music Store and of course Last.fm is going to keep commissions if you use their links.
+         * If all else fails just returns a # symbol an idea I'm not as enamoured with as I once was.
+         *
+         * @return string
+         */
+        public function currentAlbumPurchaseURL()
+        {
+        	$purchaseURL = $this->currentAlbumAmazonProductURL();
+        	
+        	if (strcm($purchaseURL, '#') == 0)
+        	{
+        		$purchaseURL = $this->currentAlbumBestBuyProductURL();
+        		
+        		if (strcm($purchaseURL, '#') == 0)
+        		{
+        		  $purchaseURL = $this->getBuyLinkFromITunesFor($this->currentAlbumArtist(), $this->currentAlbumTitle());
+        		}
+        	}
+        	
+    
+        	return $purchaseURL;
+        }
          
          
          
@@ -499,15 +532,8 @@
          * @return string
          */
          public function currentAlbumArtist()
-         {
-         	$anAlbum = $this->currentAlbumAsArray();
-         	$artistName = $anAlbum[0];
-         	if ($artistName == null)
-         	{
-         		$artistName = "unknown";  // This is better than returning null or nothing...
-         	}
-         	
-         	return $artistName;
+         {	
+         	return $this->currentArtist();
          }
          
          
@@ -668,14 +694,14 @@
              // conditions, this could concievably take forever, now that I look at the code in the morning...  but the odds of that on a decent
              // sized collection are very small...
              $randomAlbum = $this->randomAlbumAsArray();
-             $mediumImageURL = $this->currentAlbumsMediumImageURL();
-             $largeImageURL = $this->currentAlbumsLargeImageURL();
+             $mediumImageURL = $this->currentAlbumMediumImageURL();
+             $largeImageURL = $this->currentAlbumLargeImageURL();
              
              while((strcmp($mediumImageURL, myInfo::MISSING_COVER_URL) == 0) || (strcmp($largeImageURL, myInfo::MISSING_COVER_URL) == 0))
              {
 				$this->goToNextAlbum();
-             	$mediumImageURL = $this->currentAlbumsMediumImageURL();
-            	$largeImageURL = $this->currentAlbumsLargeImageURL();
+             	$mediumImageURL = $this->currentAlbumMediumImageURL();
+            	$largeImageURL = $this->currentAlbumLargeImageURL();
              } 
              
              return $this->currentAlbumAsArray();  // We've found one that satisfied the conditions and it is now the currentAlbum
@@ -704,7 +730,7 @@
          		$counter++;
          		$hasLargeImage = true;
          		$hasMediumImage = true;
-         		$possibleSmallImage = $this->currentAlbumsSmallImageURL();
+         		$possibleSmallImage = $this->currentAlbumSmallImageURL();
          		if((strcmp($possibleSmallImage, myInfo::MISSING_COVER_URL) != 0) && (! $this->isCurrentAlbumByVarious()))
          		{
          			// We have a useful small image
@@ -739,9 +765,9 @@
          	$usefulInfo = array(
 								'artist' => $basicInfo[0],
 								'album' => $basicInfo[1],
-								'largeImageURL' => $this->currentAlbumsLargeImageURL(),
-								'mediumImageURL' => $this->currentAlbumsMediumImageURL(),
-								'smallImageURL' => $this->currentAlbumsMediumImageURL(),
+								'largeImageURL' => $this->currentAlbumLargeImageURL(),
+								'mediumImageURL' => $this->currentAlbumMediumImageURL(),
+								'smallImageURL' => $this->currentAlbumMediumImageURL(),
 								'artistInfoURL' => $artistInfo['url'],
 								'shortArtistBio' => $artistInfo["bio"]["summary"]
 								);
@@ -763,12 +789,12 @@
          public function randomAlbumWithLargeImageAndArtistInfo()
          {
          	$randomAlbumInfo = $this->randomAlbumAsArray();
-         	$largeImageURL = $this->currentAlbumsLargeImageURL();
+         	$largeImageURL = $this->currentAlbumLargeImageURL();
          	
          	while(strcmp($largeImageURL, myInfo::MISSING_COVER_URL) == 0)
          	{
          		$randomAlbumInfo = $this->randomAlbumAsArray();
-         		$largeImageURL = $this->currentAlbumsLargeImageURL();
+         		$largeImageURL = $this->currentAlbumLargeImageURL();
          	}
 			// When we escape the while loop we have an album with a valid large image set as the current album 
 			// It probably has artist info, but we need to check
@@ -792,8 +818,8 @@
 								'artist' => $randomAlbumInfo[0],
 								'album' => $randomAlbumInfo[1],
 								'largeImageURL' => $largeImageURL,
-								'mediumImageURL' => $this->currentAlbumsMediumImageURL(),
-								'smallImageURL' => $this->currentAlbumsSmallImageURL(),
+								'mediumImageURL' => $this->currentAlbumMediumImageURL(),
+								'smallImageURL' => $this->currentAlbumSmallImageURL(),
 								'artistInfoURL' => $artistInfo['url'],
 								'shortArtistBio' => $artistInfo["bio"]["summary"]
 								);
@@ -818,8 +844,8 @@
 			{
 				$largeImageURL = $this->getNextValidLargeAlbumCoverImageURL(); // This method will do a fair amount of work for us.
 				$counter++;  // This is not an accurate count here, but it keeps it from going too wild
-				if((strcmp($this->currentAlbumsMediumImageURL(), myInfo::MISSING_COVER_URL) != 0) 
-					&& (strcmp($this->currentAlbumsSmallImageURL(), myInfo::MISSING_COVER_URL) != 0)
+				if((strcmp($this->currentAlbumMediumImageURL(), myInfo::MISSING_COVER_URL) != 0) 
+					&& (strcmp($this->currentAlbumSmallImageURL(), myInfo::MISSING_COVER_URL) != 0)
 					&& (! $this->isCurrentAlbumByVarious()))
 				{
 					try
@@ -852,9 +878,9 @@
          	$usefulInfo = array(
 								'artist' => $basicInfo[0],
 								'album' => $basicInfo[1],
-								'largeImageURL' => $this->currentAlbumsLargeImageURL(),
-								'mediumImageURL' => $this->currentAlbumsMediumImageURL(),
-								'smallImageURL' => $this->currentAlbumsMediumImageURL(),
+								'largeImageURL' => $this->currentAlbumLargeImageURL(),
+								'mediumImageURL' => $this->currentAlbumMediumImageURL(),
+								'smallImageURL' => $this->currentAlbumMediumImageURL(),
 								'artistInfoURL' => $artistInfo['url'],
 								'shortArtistBio' => $artistInfo["bio"]["summary"]
 								);
@@ -1080,7 +1106,7 @@
          *
          * @return array of tracks
          */
-         public function currentAlbumsTracks()
+         public function currentAlbumTracks()
          {         	
          	$tracks = array(); // Time for some serious modularity!  
       
@@ -1160,13 +1186,44 @@
          
          
         /**
+         * Returns the current album's cover image in small size as a valid URL or a place holder image
+         *
+         * @return string
+         */
+         public function currentAlbumSmallImageURL()
+         {
+         	// First check Amazon.com but after that check iTunes Music Store
+         	$imageURL = $this->currentAlbumImageURLOf("Small");
+         	
+         	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
+         	{
+         		if (( ! $this->isCurrentArtistUnknown()) && ( ! $this->isCurrentAlbumByVarious()))
+         		{
+					$iTunesArtistInfo = $this->getArtistResultsFromITunes($this->currentAlbumArtist());
+					if ($iTunesArtistInfo->results != null)
+					{
+						$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $this->currentAlbumTitle()); 
+						if ($iTunesAlbumInfo != null)
+						{
+							$imageURL = $iTunesAlbumInfo->results[0]->artworkUrl100; // This is bigger than Amazon.com by 25 pixels but the browser can downsize...
+						}
+					}
+				}
+         	}
+         	
+			return $imageURL;
+         }
+         
+         
+         
+        /**
          * Returns the current album's cover image in medium size as a valid URL or a place holder image
          *
          * @return string
          */
-         public function currentAlbumsMediumImageURL()
+         public function currentAlbumMediumImageURL()
          {
-         	$imageURL = $this->currentAlbumsImageURLOf("Medium");
+         	$imageURL = $this->currentAlbumImageURLOf("Medium");
          	
          	// If we can't find it in Amazon, we could try Last.fm
          	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
@@ -1189,42 +1246,14 @@
          
          
         /**
-         * Returns the current album's cover image in small size as a valid URL or a place holder image
-         *
-         * @return string
-         */
-         public function currentAlbumsSmallImageURL()
-         {
-         	// First check Amazon.com but after that check iTunes Music Store
-         	$imageURL = $this->currentAlbumsImageURLOf("Small");
-         	
-         	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
-         	{
-         		// Try finding this album cover in iTunes using my latest greatest caching enabled method!
-         		// This is much more work, so only do it as a last resort...
-         		$albumInfo = $this->currentAlbumAsArray();
-				$iTunesArtistInfo = $this->getArtistResultsFromITunes($albumInfo[0]);
-				$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $albumInfo[1]); 
-				if ($iTunesAlbumInfo != null)
-				{
-					$imageURL = $iTunesAlbumInfo->results[0]->artworkUrl100; // This is bigger than Amazon.com by 25 pixels but the browser can downsize...
-				}
-         	}
-         	
-			return $imageURL;
-         }
-         
-         
-         
-        /**
          * Returns the current album's cover image in large size as a valid URL or a place holder image
          *
          * @return string
          */
-         public function currentAlbumsLargeImageURL()
+         public function currentAlbumLargeImageURL()
          {	
          	// If we can't find it in Amazon, we could try Last.fm
-         	$imageURL = $this->currentAlbumsImageURLOf("Large");
+         	$imageURL = $this->currentAlbumImageURLOf("Large");
          	
          	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
          	{
@@ -1247,8 +1276,11 @@
          
          // This function is private so I don't have to worry about typos in fetching images of the wrong size
          // Amazon.com is the best source for large images, but images can also be sourced from other APIs, I just implemented Amazon first.
-         private function currentAlbumsImageURLOf($size)
+         private function currentAlbumImageURLOf($size)
          {
+            // Why doesn't this method call the three methods above? 
+         	// BECAUSE that would be recursive!
+         	// I also use a switch, must have been feeling adventurous...
          	$amazonXML = $this->currentAlbumAsAmazonXML();
          	
          	if (($amazonXML != null) && ($amazonXML->Items->TotalResults > 0))
@@ -1390,7 +1422,8 @@
         	
         	while( ($counter < $this->collectionSize()) && ( ! $foundValidURL))
         	{
-        		$potentialURL = $this->currentAlbumsImageURLOf($size);
+        		// I rely heavily on returning the MISSING_COVER_URL in my first mashup so changing my code to improve that mashup often fails...
+        		$potentialURL = $this->currentAlbumImageURLOf($size);
         		if(strcmp($potentialURL, myInfo::MISSING_COVER_URL) == 0)
         		{
         			// We've found nothing useful
@@ -1403,7 +1436,7 @@
         		$counter = $counter + 1;  // Always increase the counter
         	}
         	
-        	if(!$foundValidURL)
+        	if( ! $foundValidURL)
         	{
         		throw new Exception('There are no valid URLs for images of ' . $size . ' in this albumCollection');
         	}
@@ -1459,7 +1492,7 @@
         	if ($this->isCurrentAlbumTheLast())
         	{
         		// This is the last album in the index
-				$potentialURL = $this->currentAlbumsImageURLOf($size);
+				$potentialURL = $this->currentAlbumImageURLOf($size);
 				if(strcmp($potentialURL, myInfo::MISSING_COVER_URL) == 0)
 				{
 					// We've found nothing useful
@@ -1474,11 +1507,10 @@
         	else
         	{
         		// Neither the first nor the last album in the array.
-				$potentialURL = $this->currentAlbumsImageURLOf($size);
+				$potentialURL = $this->currentAlbumImageURLOf($size);
 				if(strcmp($potentialURL, myInfo::MISSING_COVER_URL) == 0)
 				{
-					$this->goToNextAlbum();  //am I going forward two at a time?
-					// Even if I am it is working like this to a degree...
+					// I was skipping every second CD, plus Amazon is returning less data, a really fast internet connection helps
 					$potentialURL = $this->getNextValidAlbumCoverImageURLOf($size);
 				}
 			}
