@@ -302,7 +302,7 @@
 		 
 		 
 		 // I made this method to add modularity to trackBuyLinkFor
-		 private function getBuyLinkFromITunesFor($artistName, $albumTitle)
+		 protected function getBuyLinkFromITunesFor($artistName, $albumTitle)
 		 {
 		 	$buyLink = '#'; // This has become a defacto error condition, originally I just wanted to reload the page href='#'
 		 	

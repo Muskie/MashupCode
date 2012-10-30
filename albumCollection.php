@@ -399,11 +399,11 @@
         {
         	$purchaseURL = $this->currentAlbumAmazonProductURL();
         	
-        	if (strcm($purchaseURL, '#') == 0)
+        	if (strcmp($purchaseURL, '#') == 0)
         	{
         		$purchaseURL = $this->currentAlbumBestBuyProductURL();
         		
-        		if (strcm($purchaseURL, '#') == 0)
+        		if (strcmp($purchaseURL, '#') == 0)
         		{
         		  $purchaseURL = $this->getBuyLinkFromITunesFor($this->currentAlbumArtist(), $this->currentAlbumTitle());
         		}
