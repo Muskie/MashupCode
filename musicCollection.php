@@ -7,7 +7,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4
+     * @version 1.4.1
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -166,11 +166,11 @@
 		 protected function getAlbumInfoFromLastFM($artistName, $albumTitle)
 		 {
 			$fileName = $artistName . '-' . $albumTitle;
-			$fileName = preg_replace("/[^a-zA-Z0-9]/", "", $fileName);  // I think this removes the slash, I just put in, but maybe not RegEx is not my specialty
-			
+			$fileName = preg_replace("/[^a-zA-Z0-9]/", "", $fileName);  // I think this removes the slash, I just put in, but RegEx is not my specialty
+						
 			if(strlen($fileName) > 0)
 			{
-				$myCache = new Caching("./MashupCache/LastFM/", $fileName);
+				$myCache = new Caching("./MashupCache/LastFM/", $fileName); // This used to work for digable planets but now seems to not create a new cache...
 				$albumClass = $this->lastFMAPI->getPackage($this->lastFMAuthority, 'album', musicCollection::$lastFMConfig);
 			
 				// Setup the variables
@@ -178,15 +178,25 @@
 								'artist' => $artistName,
 								'album' => $albumTitle
 								);
+								
+				// I think album titles with ' or ( or ) are causing Matt's code grief, this includes Digable Planets.
+				/*
+				print("Going to fetch Last.fm data for: ");
+				print_r("<pre>");
+				print($methodVars);
+				print_r("<pre>");
+				*/
 				if ($myCache->needToRenewData())
 				{
 					try
 					{
 						$result = $albumClass->getInfo($methodVars);  // This method is problematic, Matt/My code needs more work...
+						// print("Fetched results from Last.fm for: " . $artistName);
 					}
 					catch (Exception $e)
 					{
 						// This getInfo method throws a lot more errors than artist does...
+						// This is not happening for Digable Planets the latest problematic data...
 						echo $e->getMessage();
 					}
 					$reformatedResult = serialize($result);
@@ -196,7 +206,7 @@
 				else
 				{
 					// It doesn't need to be renewed so use local copy of array
-					$result =  $myCache->getUnserializedData();  // This is where things go south...
+					$result =  $myCache->getUnserializedData();  
 				}
 			}  
 			
@@ -825,6 +835,7 @@
 			
 			$currentMember = $this->currentMemberAsArray();
 			
+			// This risks encountering a bug in Matt's last.fm code as I don't sanatize the album title prior to the call...
 			$albumInfo = $this->getAlbumInfoFromLastFM($currentMember[0], $currentMember[1]);
 			
 			if ( ! empty($albumInfo))
@@ -841,7 +852,8 @@
 	   
 	   
 		/**
-		 * Returns the current collection artist, ie the first item in currentMemberAsArray
+		 * Returns the current collection artist, ie the first item in currentMemberAsArray, last.fm has issues with artist's who an apostrophe in their
+		 * name or at least Matt's code does so I'm stripping apostrophe's from artist names too.
 		 *
 		 * @return string
 		 */
@@ -853,14 +865,24 @@
 			{
 				$artistName = "unknown";  // This is better than returning null or nothing...
 			}
+			else
+			{
+				// Doing this here may reduce strange last.fm bugs, but I don't always call this method, need to be vigilant. 
+			    $worrisomeChars = array("'"); // The problem seems to be with apostrophes...
+				$artistName = str_replace($worrisomeChars, '', $artistName);
+			}
 			
 			return $artistName;
 		 }
 		 
 		 
-		 // Bad data in is a possability so rather than have currentArtist be null I return "unknown" this method checks for this 
-		 // Not sure if this method should be public, private, or protected... There is no easy way to improve my CD Cover Gallery 
-		 protected function isCurrentArtistUnknown()
+		/**
+		 * This method checks that the current artist is not "unknown". If the current artist is unknown or null, I return the string "unknown" 
+		 * in the method above. Checking for this prior to querry some APIs is more efficient.
+		 *
+		 * @return Boolean
+		 */
+		 public function isCurrentArtistUnknown()
 		 {
 		 	$isUnknown = false;
 		 	

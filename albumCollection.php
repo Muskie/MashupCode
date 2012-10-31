@@ -3,7 +3,7 @@
      * Class to create a collection of records/albums/cds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 1.4
+     * @version 1.4.1
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * This class mainly returns information in the form of strings (sometimes JSON encoded), arrays, and XML objects
@@ -186,6 +186,7 @@
          // Although I don't make many calls to MusicBrainz as I use Amazon for the primary image source and Last.fm as the primary source for
          // artist bios.  MusicBrainz has a lot of information and requires no authorization to use it. Caching will be
          // done the same way as for Last.fm using serialize and unserialze.  MusicBrainz using phpBrainz uses it's own custom Objects. 
+         // MusicBrainz has album covers, but phpBrainz supports version 1 of their API and doesn't appear to let me access them. :-(
          private function getReleaseFromMusicBrainz($albumASIN)
          {
 			//ASIN's are unique and don't have spaces or garbage characters, hooray!
@@ -364,7 +365,7 @@
         
         	if($bestBuyData != null)
         	{
-				if($bestBuyData->products != null)
+				if($bestBuyData->products != null) // This is causing a notice of undifined property. I have little enthusiasm to debug the inferior BestBuy api
 				{			
 					for( $i = 0 ; $i < count($bestBuyData->products); $i++)
 					{
@@ -399,16 +400,20 @@
         {
         	$purchaseURL = $this->currentAlbumAmazonProductURL();
         	
+        	// Something in the BestBuy code may be causing me grief... I really shouldn't even use their API, it is inferior to Amazon in every way.
+        	
         	if (strcmp($purchaseURL, '#') == 0)
         	{
-        		$purchaseURL = $this->currentAlbumBestBuyProductURL();
-        		
+        		// Although I technically can earn a commission from BestBuy I've never managed to earn 100 dollars from Amazon so I doubt I will 
+        		// earn money from Best Buy. Given how little I use the BestBuy API and how inferior their database is compared to Amazon and iTunes 
+        		// I'm switching to checking iTunes second with my very last check being BestBuy.
+        		$purchaseURL = $this->getBuyLinkFromITunesFor($this->currentAlbumArtist(), $this->currentAlbumTitle());
+
         		if (strcmp($purchaseURL, '#') == 0)
         		{
-        		  $purchaseURL = $this->getBuyLinkFromITunesFor($this->currentAlbumArtist(), $this->currentAlbumTitle());
+        			$purchaseURL = $this->currentAlbumBestBuyProductURL();
         		}
         	}
-        	
     
         	return $purchaseURL;
         }
@@ -527,7 +532,8 @@
          
          
         /**
-         * Returns the current album's artist, ie the first item in currentAlbumAsArray
+         * Returns the current album's artist, ie the first item in currentAlbumAsArray. No need to worry about sanatizing as I moved that code
+         * to the parent class.
          *
          * @return string
          */
@@ -547,6 +553,24 @@
          {
          	$anAlbum = $this->currentAlbumAsArray();
          	return $anAlbum[1];
+         }
+         
+         
+         
+        /**
+         * Some album titles particularly "reachin' (a new refutation of time and space)" by the digable planets are causing last.fm or at 
+         * least Matt's code grief. So I'm created this method to make safer an album title by removing ', (, and ). I may potentially do more.
+         * Matt's code continues to age and produce oddness from deep in it's bowels so I may rewrite my class to us iTunes and MusicBrains more and
+         * last.fm less.
+         *
+         * @return string 
+         */
+         public function currentAlbumTitleSanatized()
+         {
+         	$worrisomeChars = array("(", ")", "'"); // The problem seems to be with apostrophes...
+         	$sanatizedAlbumTitle = str_replace($worrisomeChars, '', $this->currentAlbumTitle());
+         	
+         	return $sanatizedAlbumTitle;
          }
          
          
@@ -1014,11 +1038,10 @@
          {
          	$lastFMTracks = null;
 			
-			$artistName = $this->currentAlbumArtist();
-			$albumTitle = $this->currentAlbumTitle();
 			try
 			{
-				$album = $this->getAlbumInfoFromLastFM($artistName, $albumTitle);  
+				// The input to this method needs to be sanatized.
+				$album = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist(), $this->currentAlbumTitleSanatized());  
 			}
 			catch (Exception $E)
 			{
@@ -1148,7 +1171,7 @@
          {
          	$tags = array();
          	
-         	$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist(), $this->currentAlbumTitle());
+         	$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist(), $this->currentAlbumTitleSanatized());
          	
          	if ( ! empty($albumInfo))
          	{
@@ -1195,18 +1218,17 @@
          	// First check Amazon.com but after that check iTunes Music Store
          	$imageURL = $this->currentAlbumImageURLOf("Small");
          	
-         	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
+         	// Larger IF statement prevents likely unsuccessful API calls
+         	if((strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0) &&
+         		( ! $this->isCurrentArtistUnknown()) && ( ! $this->isCurrentAlbumByVarious()))
          	{
-         		if (( ! $this->isCurrentArtistUnknown()) && ( ! $this->isCurrentAlbumByVarious()))
-         		{
-					$iTunesArtistInfo = $this->getArtistResultsFromITunes($this->currentAlbumArtist());
-					if ($iTunesArtistInfo->results != null)
+				$iTunesArtistInfo = $this->getArtistResultsFromITunes($this->currentAlbumArtist());
+				if ($iTunesArtistInfo->results != null)
+				{
+					$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $this->currentAlbumTitle()); 
+					if ($iTunesAlbumInfo != null)
 					{
-						$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $this->currentAlbumTitle()); 
-						if ($iTunesAlbumInfo != null)
-						{
-							$imageURL = $iTunesAlbumInfo->results[0]->artworkUrl100; // This is bigger than Amazon.com by 25 pixels but the browser can downsize...
-						}
+						$imageURL = $iTunesAlbumInfo->results[0]->artworkUrl100; // This is bigger than Amazon.com by 25 pixels but the browser can downsize...
 					}
 				}
          	}
@@ -1217,18 +1239,22 @@
          
          
         /**
-         * Returns the current album's cover image in medium size as a valid URL or a place holder image
+         * Returns the current album's cover image in medium size as a valid URL or a place holder image. The largest image I can get from 
+         * iTunes is 100 pixels for an album cover. That isn't sufficiently large enough to be classified as medium. So even though last.fm 
+         * continues to give me grief I have no choice but to use it as a fall back for large images of album covers.
          *
          * @return string
          */
          public function currentAlbumMediumImageURL()
          {
+         	// If we can't find it in Amazon, we could try Last.fm
          	$imageURL = $this->currentAlbumImageURLOf("Medium");
          	
-         	// If we can't find it in Amazon, we could try Last.fm
-         	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
+         	// Larger IF statement prevents likely unsuccessful API calls         	
+         	if((strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0) &&
+         		( ! $this->isCurrentArtistUnknown()) && ( ! $this->isCurrentAlbumByVarious()))
          	{
-         		$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist() , $this->currentAlbumTitle());
+         		$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist() , $this->currentAlbumTitleSanatized());
          		
          		if ( ! empty($albumInfo))
          		{
@@ -1255,9 +1281,12 @@
          	// If we can't find it in Amazon, we could try Last.fm
          	$imageURL = $this->currentAlbumImageURLOf("Large");
          	
-         	if(strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0)
+         	// Larger IF statement prevents likely unsuccessful API calls
+         	if((strcmp($imageURL, myInfo::MISSING_COVER_URL) == 0) &&
+         		( ! $this->isCurrentArtistUnknown()) && ( ! $this->isCurrentAlbumByVarious()))
          	{
-         		$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist() , $this->currentAlbumTitle());
+         		// Albums with ' in the title are causing issues for Matt's code or the last.fm api, need to ensure this doesn't happen 
+         		$albumInfo = $this->getAlbumInfoFromLastFM($this->currentAlbumArtist() , $this->currentAlbumTitleSanatized());
          		
          		if ( ! empty($albumInfo))
          		{
