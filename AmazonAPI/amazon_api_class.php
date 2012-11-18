@@ -4,7 +4,7 @@
      * Class to access Amazons Product Advertising API
      * @author Sameer Borate
      * @link http://www.codediesel.com
-     * @version 1.0
+     * @version 1.1
      * All requests are not implemented here. You can easily
      * implement the others from the ones given below.
      */
@@ -77,37 +77,7 @@
         {
        		// Nothing to see here now
    		}
-        
-        
-        
-        /**
-         * Check if the xml received from Amazon is valid
-         * 
-         * @param mixed $response xml response to check
-         * @return bool false if the xml is invalid
-         * @return mixed the xml response if it is valid
-         * @return exception if we could not connect to Amazon
-         */
-        private function verifyXmlResponse($response)
-        {
-            if ($response === False)
-            {
-                throw new Exception("Could not connect to Amazon");
-            }
-            else
-            {
-                if (isset($response->Items->Item->ItemAttributes->Title))
-                {
-                    return ($response);
-                }
-                else
-                {
-                    throw new Exception("Invalid xml response, but why?");  // This happens as the original author's method ie this one, only considers one ResponseGroup, I need to use different ones...
-                    // So I don't call this method much as it throws an error and this method doesn't do much anyway.
-                }
-            }
-        }
-        
+
         
         
         /**
@@ -118,7 +88,7 @@
          */
         private function queryAmazon($parameters)
         {
-        	// Since I querry amazon always with this, I should put in the associate tag here, now that it is required.
+        	// Since I querry amazon always with this method, I should put in the associate tag here, now that it is required.
         	// I bet Amazon did this just to see who is paying attention while using their old product API...
         	$parameters["AssociateTag"] = myInfo::MY_AMAZON_ASSOCIATE_ID;
         	/*
@@ -172,7 +142,7 @@
             
             $xml_response = $this->queryAmazon($parameters);
             
-            return $xml_response;  // I don't trust his verify code much...
+            return $xml_response; 
 
         }
         
@@ -194,7 +164,7 @@
                                 
             $xml_response = $this->queryAmazon($parameters);
             
-            return $this->verifyXmlResponse($xml_response);
+            return $xml_response; // Removed unnecessary and ineffective verrification code
 
         }
         
@@ -213,7 +183,7 @@
                                 
             $xml_response = $this->queryAmazon($parameters);
             
-            return $this->verifyXmlResponse($xml_response);
+            return $xml_response; // Removed unnecessary and ineffective verrification code
         }
         
         
@@ -232,7 +202,7 @@
                                 
             $xml_response = $this->queryAmazon($parameters);
             
-            return $this->verifyXmlResponse($xml_response);
+            return $xml_response; // Removed unnecessary and ineffective verrification code
         }
         
         
@@ -240,7 +210,7 @@
         /**
          * Return details of related items to the one whose ASIN is passed in
          * 
-         * @param int $asin_code ASIN code of the product to look for related items too
+         * @param int $asin_code ASIN code of the product to look for related items to
          * @return mixed simpleXML object
          */
         public function getRelatedItemsByAsin($asin_code)
@@ -291,13 +261,13 @@
                                 
             $xml_response = $this->queryAmazon($parameters);
             
-            return $this->verifyXmlResponse($xml_response);
+            return $xml_response; // Removed unnecessary and ineffective verrification code
         }
         
         
         
         /**
-         * Return the tracks found on an album, have to page to get them all which this method doesn't do.
+         * Return the tracks found on an album, have to page to get them all which this method does not do.
          * 
          * @param string $albumTitle 
          * @param string $artist
@@ -360,7 +330,7 @@
         
         
         
-         /**
+        /**
          * Return details of a product searched by artist and title
          * 
          * @param string $artist responsible
