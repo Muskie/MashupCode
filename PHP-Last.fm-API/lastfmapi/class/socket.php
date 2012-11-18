@@ -47,7 +47,7 @@ class lastfmApiSocket {
 		$this->port = $port;
 		
 		// Open a connection in the class variable
-		$this->handle = fsockopen($this->host, $this->port, $this->error_number, $this->error_string);
+		$this->handle = @fsockopen($this->host, $this->port, $this->error_number, $this->error_string);
 		if ( $this->handle ) {
 			return TRUE;
 		}
@@ -64,6 +64,8 @@ class lastfmApiSocket {
 	 * @return string|array
 	 */
 	function send ($msg, $type = '') {
+		// Set a short timeout to prevent long hangs
+		stream_set_timeout($this->handle, 2);
 		// Send message over connection
 		fwrite($this->handle, $msg);
 		
@@ -73,9 +75,13 @@ class lastfmApiSocket {
 			$response = array();
 			$line_num = 0;
 			while ( !feof($this->handle) ) {
-	       			$response[$line_num] = fgets($this->handle, 4096);
-				$line_num++;
-	   		}
+				if( ($response[$line_num] = fgets($this->handle, 4096)) === false ) {
+					break;
+				}
+				else {
+					$line_num++;
+				}
+			}
 			// Return response as array
 			return $response;
 		}
