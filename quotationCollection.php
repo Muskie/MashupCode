@@ -12,7 +12,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.1.1
+     * @version 1.1.2
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -45,6 +45,8 @@
 
 	class quotationCollection extends musicCollection
 	{
+	
+		const MAX_TWEET_SIZE = 114; // This isn't 140 as you need to allow for link, some white space, and probably a RT or hashtag such as #qotd
 		
 		/**
 		* Initialize a Quotation Collection
@@ -475,9 +477,7 @@
 	   
 	   
 		/**
-		 * Returns true if the current quotations length with HTML tags removed is well below 140 characters.
-		 * It needs to be well below as the Tweet This button will add in an abreviated URL among other things.
-		 * Still hold out hope for a longer tweet button...
+		 * Returns true if the current quotations length with HTML tags removed is below MAX_TWEET_SIZE
 		 *
 		 * @return bool 
 		 */
@@ -491,10 +491,8 @@
 			
 			$isTweetable = false;
 			
-			if ($this->currentQuotationActualLength() < 116)
+			if ($this->currentQuotationActualLength() < self::MAX_TWEET_SIZE)
 			{
-				// Probably needs to be slightly shorter to leave room for a link and a hashtag.
-				// space 18 space #qotd = 25 characters so less than 116, should be new norm not < 120
 				$isTweetable = true;
 			}
 			
