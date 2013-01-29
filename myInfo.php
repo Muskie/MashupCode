@@ -28,5 +28,6 @@ class myInfo
 	const CACHING_DIRECTORY = '';
 	const CACHE_FILE_EXTENSION = 'cache';  // No period!
 	const MY_BESTBUY_PUBLIC_KEY = '';
+	const MY_TOPSY_KEY = '';
 }
 ?>

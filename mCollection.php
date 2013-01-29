@@ -3,7 +3,7 @@
      * Class to facilitate the creation of web mashups using various APIs.
      * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4.1
+     * @version 1.4
      * @copyright Muskie McKay
      * @license MIT
      *
@@ -380,12 +380,7 @@
       		
       		return $htmlTag;      
          }
-         
-         
-         
-         // Some of my methods should be static or 'class' methods but my unfamiliarity with PHP syntax combined with general coding rustiness and
-         // only wanting to do enough to get certain things to work...  Looks like more refactoring ahead, but first one more subclass + mashup
-         // some methods need an instance of of an API so can't be class methods...
+
          
          
 	   /**
@@ -529,7 +524,7 @@
          
          
         /**
-         * This method searches Topsy to find the biggest expert in social media for the passed in subject.
+         * This method searches Topsy to find the biggest expert on the social web for the passed in subject.
          *
          * @param string subject
          * @return string the experts Twitter account
@@ -542,7 +537,8 @@
          	$q = urlencode($subject);
          	
          	// Need to create a URL as per instructions http://code.google.com/p/otterapi/wiki/Resources#/experts
-         	$query = 'http://otter.topsy.com/experts.json?q=' . $q;
+         	// Now need to attach an API key, which is only free for 30 days, otherwise you get NULL back for the expert.
+         	$query = 'http://otter.topsy.com/experts.json?q=' . $q . '&apikey=' . myInfo::MY_TOPSY_KEY;
 						
 			$lookUpResult = fetchThisURL($query);
 			 
