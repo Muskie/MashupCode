@@ -3,7 +3,7 @@
      * Class to facilitate the creation of web mashups using various APIs.
      * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4
+     * @version 1.5
      * @copyright Muskie McKay
      * @license MIT
      *
@@ -577,17 +577,18 @@
 		*/
 	   public function embeddableVideoClipFor($searchString)
 	   {
-			// Previous experience revealed that video search is not perfect, but we're just going to giver and create an embedded player with the 
-			// top result or return NULL
-			// I used this as a guide to build my embedded player http://code.google.com/apis/youtube/youtube_player_demo.html
+			// Previous experience revealed that video search is not perfect, in that for given keywords the top result isn't always accurate.
 			$embeddableVideoClipHTML = NULL;
 			
 			// Further details on searching YouTube http://www.ibm.com/developerworks/xml/library/x-youtubeapi/
+			// This was working well for over two years but had to be revised to use version 2 of the API
+			// May switch to Zend or version 3.0 of Google/YouTube API but this is working again... I even asked Stack Overflow 
+			// http://stackoverflow.com/questions/14915298/searching-youtube-and-displaying-first-video-in-php-advice-needed
 			
 			$vq = $searchString;
 			$vq = preg_replace('/[[:space:]]+/', ' ', trim($vq));
         	$vq = urlencode($vq);
-        	$feedURL = 'http://gdata.youtube.com/feeds/api/videos?vq=' . $vq . '&orderby=viewCount&max-results=1';
+        	$feedURL = 'http://gdata.youtube.com/feeds/api/videos?q=' . $vq . '&safeSearch=none&orderby=viewCount&v=2'; // Added version 2 argument	
 		  
 			// read feed into SimpleXML object
 			try
@@ -605,7 +606,7 @@
 				$videoLink = $youTubeXML->entry->link[0]['href'];  // This is not enough, I need to trim the beginning and end off this to just get the video code
 				$trimedURL = str_replace('http://www.youtube.com/watch?v=', '' , $videoLink);
 				$videoCode = str_replace('&feature=youtube_gdata', '', $trimedURL);
-				$embeddableVideoClipHTML = '<object style="height: 390px; width: 640px"><param name="movie" value="http://www.youtube.com/v/' . $videoCode . '"><param name="allowFullScreen" value="true"><param name="allowScriptAccess" value="always"><embed src="http://www.youtube.com/v/' . $videoCode . '?version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="640" height="390"></object>';
+				$embeddableVideoClipHTML = '<iframe id="ytplayer" type="text/html" width="640" height="360" src="https://www.youtube.com/embed/' . $videoCode . '"frameborder="0" allowfullscreen>';
 			}
 			
 			return $embeddableVideoClipHTML;
