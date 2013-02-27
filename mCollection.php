@@ -3,7 +3,7 @@
      * Class to facilitate the creation of web mashups using various APIs.
      * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.5
+     * @version 1.6
      * @copyright Muskie McKay
      * @license MIT
      *
@@ -49,8 +49,8 @@
 	require_once('muskLib.php'); // A few little helper functions I wrote or acquired online
 	require_once('caching.php');  // This is my DIY caching of XML and other data returned from APIs 
 	require_once('facebookLib.php');  // This only slightly makes my life easier, the author had big plans so I included support...
-	require_once('BestBuy/Service/Remix.php'); //After learning of it, I added the BestBuy Remix product API,
-	// I prefer Amazon due to already having it debugged and the superior documentation, BestBuy integration is not very useful currently
+	require_once('BestBuy/Service/Remix.php'); // I prefer Amazon, BestBuy integration is not very useful, use Amazon
+	require_once ('codebird.php'); // This helps with Oauth for Twitter 
 
 	class mCollection
 	{
@@ -113,6 +113,14 @@
 		 * @var Best Buy Remix API Object
 		 */
 		protected $bestBuyRemix;
+		
+		
+		/**
+		 * This is an instance of CodeBird a wrapper class for Twitter.  
+		 * @access protected
+		 * @var Best Buy Remix API Object
+		 */
+		protected $codeBird;
 		 
 		 
 		 
@@ -159,7 +167,7 @@
     		$this->bestBuyRemix = new BestBuy_Service_Remix(myInfo::MY_BESTBUY_PUBLIC_KEY);  //New API which may become more useful
     		$this->facebook = new facebookLib(array(
   											'appId'  => myInfo::MY_FACEBOOK_PUBLIC_KEY,
-  											'secret' => myInfo::MY_FACEBOOK_SECRET_KEY,
+  											'secret' => myInfo::MY_FACEBOOK_PRIVATE_KEY,
  		 									'cookie' => true
 											));
 			facebookLib::$CURL_OPTS[CURLOPT_CAINFO] = './ca-bundle.crt';
@@ -170,6 +178,10 @@
 
 			$this->flickrAPI = new phpFlickr(myInfo::MY_FLICKR_PUBLIC_KEY, myInfo::MY_FLICKR_PRIVATE_KEY);
 			$this->flickrAPI->enableCache("fs", "./" . myInfo::CACHING_DIRECTORY . "/Flickr");  // This class came with it's own caching system, now I'm using at least three.  Last.fm PHP API has one too but it requires a database.
+			// Twitter's API now requires Oauth, GData wants you to use this too, but currently it is still possible to search Google (YouTube) without Oauth 
+			Codebird::setConsumerKey(myInfo::MY_TWITTER_PUBLIC_KEY, myInfo::MY_TWITTER_PRIVATE_KEY);
+			$this->codeBird = Codebird::getInstance();
+			$this->codeBird->setToken(myInfo::MY_TWITTER_ACCESS_TOKEN, myInfo::MY_TWITTER_ACCESS_TOKEN_SECRET);
     	}
     	
     	
@@ -384,29 +396,108 @@
          
          
 	   /**
-		* Searches Twitter for mentions of the string passed in.  Uses the default Twitter search which is a blend of new and popular
+		* Searches Twitter for mentions of the string passed in, now uses CodeBird and Twitter API version 1.1
+		* Twitter Display Requirements are not optional so I recommend not calling this method and instead call 
+		* displayRecentTweetsFor($searchString) Towards that end I made this protected.
 		*
 		* @param search string
 		*
-		* @return decoded JSON of results
+		* @return Object
 		*/
-		public function searchTwitterFor($searchString)
+		protected function searchTwitterFor($searchString)
 		{
-		// Twitter can do a variety of responses, probably will use JSON which is the default, so will return a decoded JSON object
-		// 15 is the default number of tweets per page, do I want less?  Probably?
 			$searchResults;
 			
-			$searchStringStart = 'http://search.twitter.com/search.json?q=';
+			// To improve search results call this method with a string of keywords like this "keyword one two three"
 			$encodedQuery = urlencode( $searchString );
-			$additionalArgument = '&rpp=' . mCollection::TWEETS_PER_PAGE;
-			$englishOnly = '&lang=en';
-			$searchString = $searchStringStart . $encodedQuery . $additionalArgument . $englishOnly;
+			$params = array(
+    						'q' => $encodedQuery,
+    						'count' => mCollection::TWEETS_PER_PAGE,
+    						'lang' => 'en',
+    						'result_type' => 'recent'
+							);
 			
-			$results = fetchThisURL($searchString);
-			$searchResults = json_decode($results);
-		
+			// Should this be search_tweets instead of just search? YES! Do my arguments have to be in an array? Not necessarily...
+			// Returns an array of objects, which really need to be displayed exactly. Use displayRecentTweetsFor() instead of this method
+			$searchResults = $this->codeBird->search_tweets($params);
+
+			
 			return $searchResults;
 		}
+		
+		
+		
+		/**
+		 * Searches the Twitter API for recent tweets about the passed in search string. More importantly formats the resulting tweets 
+		 * in order to meet the display requirements with valid HTML. Still need to include CSS rules in client code. This solution is based on:
+		 * http://oikos.org.uk/2013/02/tech-notes-displaying-twitter-statuses-using-api-v1-1-and-oath/
+		 *
+		 * You also need to possibly includ the Twitter javascript call somewhere to use this method and resulting HTML code. Read the Twitter 
+		 * documentation: https://dev.twitter.com/terms/display-requirements
+		 *
+		 * @param search string 
+		 *
+		 * @return null 
+		 */
+		 public function displayRecentTweetsFor( $searchString )
+		 {
+		 	// Another method handles the searching but displaying the results just the way Twitter wants is work, hence this method 
+		 	$tweets = $this->searchTwitterFor( $searchString );
+		 	
+		 	// Now I have to loop through the results and display them as per the standard. 
+		 	if (count($tweets->statuses) > 0)
+		 	{
+		 		print('<div class="tweets">');
+				foreach ($tweets->statuses as $this_tweet) 
+				{
+					// Following Ross's example I'm close to meeting the display requirements. Timestamp may be incorrectly formatted.
+					// Do I need little logos for Reply, Retweet, and Favourite?
+					// https://dev.twitter.com/terms/display-requirements
+					print('<div class="tweet-container">');
+					print('<a class="tweet-user-avatar" href="https://twitter.com/intent/user?user_id=' . $this_tweet->user->id_str . '">');
+					print('<img width="32" height="32" src="' . $this_tweet->user->profile_image_url . '" /></a>');
+	
+					print('<p class="tweet-user-names">');
+					print('<a class="tweet-display-name" href="https://twitter.com/intent/user?user_id=' . $this_tweet->user->id_str . '">');
+					print($this_tweet->user->name . '</a>');
+					print('<a class="tweet-account-name" href="https://twitter.com/intent/user?user_id=' . $this_tweet->user->id_str . '">');
+					print('@' . $this_tweet->user->screen_name . '</a></p>');
+					
+					// I think Tweet time should be below tweet-text and the follow button in the top right...
+					
+					// Working but it is too damn long, can I remove the @ part? Yes but it still renders it, I think it is needed...
+					// The follow button works either way though there is no popup, instead the button turns grey but a trip to Twitter.com confirms I did follow them.
+					
+					print('<a href="https://twitter.com/' . $this_tweet->user->screen_name .  '" class="twitter-follow-button" data-show-count="false" data-dnt="true">Follow @' . $this_tweet->user->name . '</a>');
+
+					print('<div class="tweet-text">');
+					print(linkify_tweet( $this_tweet->text, $this_tweet ));
+					print('</div>');
+					
+					print('<div class="tweet-time">');
+					print('<a href="http://twitter.com/' . $this_tweet->user->screen_name . '/status/' . $this_tweet->id_str . '">');
+					print(relativeTime( strtotime( $this_tweet->created_at))); // Couldn't I just print the time string?
+					print('</a></div>');
+					
+					print('<div class="tweet-intents">');
+					// Web Intents aren't working perfectly or at least I have no little images. Could switch to UL LI and unique bullet 
+					// Complete with fancy CSS roll over Eric Meyer style.
+					// Extra attributes in tag remove:
+					/*
+					class="intent-reply" title="Reply to this Tweet" 
+					class="intent-retweet" title="Retweet this Tweet" 
+					class="intent-favorite" title="Favourite this Tweet" 
+					*/
+					print('<a href="https://twitter.com/intent/tweet?in_reply_to=' . $this_tweet->id_str . '">Reply</a>');
+					print('<a href="https://twitter.com/intent/retweet?tweet_id=' . $this_tweet->id_str . '">Retweet</a>');
+					print('<a href="https://twitter.com/intent/favorite?tweet_id=' . $this_tweet->id_str . '">Favourite</a>');
+					print('</div></div>');
+				}
+				print('</div>');
+			}
+			
+			// Don't need to return anything not even null in PHP apparently, I really am not a PHP guy, I don't know best practices at all.
+		 }
          
         
         
@@ -582,13 +673,13 @@
 			
 			// Further details on searching YouTube http://www.ibm.com/developerworks/xml/library/x-youtubeapi/
 			// This was working well for over two years but had to be revised to use version 2 of the API
-			// May switch to Zend or version 3.0 of Google/YouTube API but this is working again... I even asked Stack Overflow 
+			// May switch to Zend or version 3.0 of Google/YouTube API but this is working again... I even asked Stack Overflow for advice
 			// http://stackoverflow.com/questions/14915298/searching-youtube-and-displaying-first-video-in-php-advice-needed
 			
 			$vq = $searchString;
 			$vq = preg_replace('/[[:space:]]+/', ' ', trim($vq));
         	$vq = urlencode($vq);
-        	$feedURL = 'http://gdata.youtube.com/feeds/api/videos?q=' . $vq . '&safeSearch=none&orderby=viewCount&v=2'; // Added version 2 argument	
+        	$feedURL = 'http://gdata.youtube.com/feeds/api/videos?q=' . $vq . '&safeSearch=moderate&orderby=relevance&v=2'; // Added version 2 argument	
 		  
 			// read feed into SimpleXML object
 			try

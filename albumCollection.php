@@ -3,7 +3,7 @@
      * Class to create a collection of records/albums/cds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 1.4.1
+     * @version 1.5
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * This class mainly returns information in the form of strings (sometimes JSON encoded), arrays, and XML objects
@@ -1208,6 +1208,62 @@
          
          
          
+         /**
+         * This method returns a random sized cover image. If it can't find one it returns the MISSING_COVER_URL
+         *
+         * @return string
+         */
+         public function currentAlbumRandomImageURL()
+         {
+         	// True random never works as good as an heuristic that appears random. 
+         	// My cover gallery mashup may look best with medium sized images so try to find them more often...
+			// I return large images the least 
+			$seed = rand(0, 1);
+			if ($seed >= .9)
+			{
+				$imageURL = $this->currentAlbumLargeImageURL();
+			}
+			else if($seed <= .2)
+			{
+				$imageURL = $this->currentAlbumSmallImageURL();
+			}
+			else
+			{	
+				$imageURL = $this->currentAlbumMediumImageURL();
+			}
+         	
+         	return $imageURL;
+         }
+         
+         
+         
+         
+        /**
+         * This method returns the largest album cover possible, calling first currentAlbumLargeImageURL then currentAlbumMediumImageURL and
+         * finally calling currentAlbumSmallImageURL. If it can't find anything it will return a placeholder. This method can be time consuming but
+         * with caching and prioritizing Amazon may help make a better image cover gallery.
+         *
+         * @return string
+         */
+         public function currentAlbumBestImageURL()
+         {
+         	$bestImageURL = $this->currentAlbumLargeImageURL();
+         	
+         	if (strcmp($bestImageURL, myInfo::MISSING_COVER_URL) == 0)
+         	{
+         		$bestImageURL = $this->currentAlbumMediumImageURL();
+         		if (strcmp($bestImageURL, myInfo::MISSING_COVER_URL) == 0)
+         		{
+         			$bestImageURL = $this->currentAlbumSmallImageURL(); // This still can return the place holder image
+         			// I let client code determine if they want to display the placeholder image or iterate through the collection again.
+         		}
+         	}
+         	
+         	return $bestImageURL;
+         }
+         
+         
+         
         /**
          * Returns the current album's cover image in small size as a valid URL or a place holder image
          *
@@ -1548,7 +1604,7 @@
         }
         
         
-        
+        // Why are these two methods private?
         private function isCurrentAlbumTheLast()
         {
         	return $this->isCurrentMemberTheLast();
