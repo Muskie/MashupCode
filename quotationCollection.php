@@ -137,7 +137,7 @@
        	 */
          private function getInfoFromAmazonFor($quotation)
          {   
-         	if(count($quotation) >= 2)
+         	if(count($quotation) >= 3) // 3rd value is hint about source of quotation
          	{
 				$validFilename = preg_replace("/[^a-zA-Z0-9]/", "", $quotation[0]);
 	
@@ -155,7 +155,7 @@
 								// We have a quotation from a movie, look in Film section of Amazon
 								$result = $this->amazonAPI->getDVDCoverByTitle($quotation[0]);
 							}
-							else if(($this->isFromSong($quotation)) || ($this->isFromMusician()))
+							else if(($this->isFromSong($quotation)) || ($this->isFromMusician($quotation)))
 							{
 								// We have a quotation from a song or musician, looks in music section of Amazon 
 								$result = $this->amazonAPI->getInfoForSongwriter($quotation[0]);
@@ -817,10 +817,14 @@
          {
          	$result = false;
          	
-         	if(strcmp(trim($quotation[2]), 'movie') == 0)
+         	// Should check that $quotation[2] is not null first....
+         	if(isset($quotation[2])) 
          	{
-         		$result = true;
-         	}
+				if(strcmp(trim($quotation[2]), 'movie') == 0)
+				{
+					$result = true;
+				}
+			}
          	
          	
          	return $result;
@@ -850,10 +854,14 @@
          {
          	$result = false;
          	
-         	if(strcmp(trim($quotation[2]), 'song') == 0)
+         	// Should check that $quotation[2] is not null first....
+         	if(isset($quotation[2])) 
          	{
-         		$result = true;
-         	}
+         		if(strcmp(trim($quotation[2]), 'song') == 0)
+				{
+					$result = true;
+				}
+			}
          	
          	
          	return $result;
@@ -883,10 +891,14 @@
          {
          	$result = false;
          	
-         	if(strcmp(trim($quotation[2]), 'musician') == 0)
+         	// Should check that $quotation[2] is not null first....
+         	if(isset($quotation[2])) 
          	{
-         		$result = true;
-         	}
+				if(strcmp(trim($quotation[2]), 'musician') == 0)
+				{
+					$result = true;
+				}
+			}
          	
          	
          	return $result;
