@@ -4,7 +4,7 @@ this code you will need:
 
 	The official Facebook PHP code : http://github.com/facebook/php-sdk/
 	Vadim's Facebook code : http://vadimg.com/2010/05/05/facebook-php-library-graph-social-plugins-search-posting-and-more/
-	Tweetify.inc : https://github.com/fiveminuteargument/tweetify
+	CodeBird : https://github.com/mynetx/codebird-php
 	phpFlickr : http://phpflickr.com/
 	phpBrainz : https://github.com/olds/phpbrainz
 	
