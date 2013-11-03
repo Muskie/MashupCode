@@ -6,7 +6,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 0.7.1
+     * @version 0.7.2
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -324,6 +324,8 @@
 		 */
 		public function getCurrentDirectorPhotosFromFlickr()
 		{
+			// The results of this method have become disappointing for most directors, no longer using in my main movie mashup.
+			
 			// Returns an associated array.  I fetch extra image URLs: t = tiny, s = small, m = medium, o = oversized or something...
 			
 			// I need to build an associative array of arguments as this method/API call has so damn many:
