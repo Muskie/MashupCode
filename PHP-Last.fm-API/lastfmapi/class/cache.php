@@ -43,7 +43,7 @@ class lastfmApiCache {
 	 * @var boolean
 	 */
 	private $enabled;
-	
+
 	/**
 	 * Run when the class is created
 	 * @param array $config The config array
@@ -51,16 +51,16 @@ class lastfmApiCache {
 	 */
 	function __construct($config) {
 		$this->config = $config;
-		
+
 		if ( isset($this->config['cache_type']) ) {
 			$this->type = $this->config['cache_type'];
 		}
 		else {
 			$this->type = 'sqlite';
 		}
-		
+
 		$this->check_if_enabled();
-		
+
 		if ( $this->enabled == true ) {
 			if ( $this->type == 'sqlite' ) {
 				require_once 'sqlite.php';				
@@ -86,7 +86,7 @@ class lastfmApiCache {
 			//$this->show_all();
 		}
 	}
-	
+
 	/**
 	 * Internal method to chack if caching is enabled
 	 * @access private
@@ -100,7 +100,7 @@ class lastfmApiCache {
 			$this->enabled = false;
 		}
 	}
-	
+
 	/**
 	 * Internal method to check if the table exists
 	 * @access private
@@ -129,7 +129,7 @@ class lastfmApiCache {
 			}
 		}
 	}
-	
+
 	/**
 	 * Internal method to create the table if it doesn't exist
 	 * @access private
@@ -151,7 +151,7 @@ class lastfmApiCache {
 			echo $this->db->error;
 		}
 	}
-	
+
 	/**
 	 * Searches the database for the cahce date. Returns an array if it exists or false if it doesn't 
 	 * @access public
@@ -160,7 +160,7 @@ class lastfmApiCache {
 	 */
 	public function get($unique_vars) {
 		if ( $this->enabled == true ) {
-			$query = "SELECT expires, body FROM cache WHERE unique_vars='".htmlentities(serialize($unique_vars))."' LIMIT 1";
+			$query = "SELECT expires, body FROM cache WHERE unique_vars='".htmlentities(serialize($unique_vars), ENT_COMPAT, 'UTF-8')."' LIMIT 1";
 			if ( $result = $this->db->query($query) ) {
 				if ( $result->size() > 0 ) {
 					$row = $result->fetch();
@@ -169,8 +169,8 @@ class lastfmApiCache {
 						return false;
 					}
 					else {
-						//print_r(unserialize(html_entity_decode($row['body'])));
-						return unserialize(html_entity_decode($row['body']));
+						//print_r(unserialize(html_entity_decode($row['body'], ENT_COMPAT, 'UTF-8')));
+						return unserialize(html_entity_decode($row['body'], ENT_COMPAT, 'UTF-8'));
 					}
 				}
 				else {
@@ -186,7 +186,7 @@ class lastfmApiCache {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Adds new cache data to the database
 	 * @access public
@@ -197,7 +197,7 @@ class lastfmApiCache {
 	public function set($unique_vars,  $body) {
 		if ( $this->enabled == true ) {
 			$expire = time() + $this->config['cache_length'];
-			$query = "INSERT INTO cache (unique_vars, expires, body) VALUES ('".htmlentities(serialize($unique_vars))."', '".$expire."', \"".htmlentities(serialize($body))."\")";
+			$query = "INSERT INTO cache (unique_vars, expires, body) VALUES ('".htmlentities(serialize($unique_vars), ENT_COMPAT, 'UTF-8')."', '".$expire."', \"".htmlentities(serialize($body), ENT_COMPAT, 'UTF-8')."\")";
 			if ( $this->db->query($query) ) {
 				return true;
 			}
@@ -210,7 +210,7 @@ class lastfmApiCache {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Internal method to delete unneeded cache data
 	 * @access private
@@ -218,7 +218,7 @@ class lastfmApiCache {
 	 * @return boolean
 	 */
 	private function del($unique_vars) {
-		$query = "DELETE FROM cache WHERE unique_vars='".htmlentities(serialize($unique_vars))."'";
+		$query = "DELETE FROM cache WHERE unique_vars='".htmlentities(serialize($unique_vars), ENT_COMPAT, 'UTF-8')."'";
 		if ( $this->db->query($query) ) {
 			return true;
 		}
@@ -227,7 +227,7 @@ class lastfmApiCache {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Internal method to show all cached data (used for debugging)
 	 * @access private

@@ -159,61 +159,6 @@ class lastfmApiArtist extends lastfmApi {
 		}
 	}
 	
-	/**
-	 * Get Images for this artist in a variety of sizes.
-	 * @param array $methodVars An array with the following required values: <i>artist</i> and optional values: <i>page</i>, <i>limit</i>, <i>order</i>
-	 * @return array
-	 */
-	public function getImages($methodVars) {
-		// Check for required variables
-		if ( !empty($methodVars['artist']) ) {
-			$vars = array(
-				'method' => 'artist.getimages',
-				'api_key' => $this->auth->apiKey
-			);
-			$vars = array_merge($vars, $methodVars);
-			
-			if ( $call = $this->apiGetCall($vars) ) {
-				$images = array();
-				$i = 0;
-				$images['artist'] = (string)$call->images['artist'];
-				$images['page'] = (string)$call->images['page'];
-				$images['totalpages'] = (string)$call->images['totalpages'];
-				$images['total'] = (string)$call->images['total'];
-				
-				foreach ( $call->images->image as $image ) {
-					$images['images'][$i]['title'] = (string) $image->title;
-					$images['images'][$i]['url'] = (string) $image->url;
-					$images['images'][$i]['dateadded'] = (string) $image->dateadded;
-					$images['images'][$i]['format'] = (string) $image->format;
-					$images['images'][$i]['sizes'] = array();
-					$official = isset($image['official']) ? (string) $image['official'] : false;
-					$images['images'][$i]['official'] = $official == 'yes';
-					foreach( $image->sizes->size as $size ) {
-						$images['images'][$i]['sizes'][(string)$size['name']] = array(
-							'width' => (string) $size['width'],
-							'height' => (string) $size['height'],
-							'url' => (string) $size,
-						);
-					}
-					$images['images'][$i]['votes'] = array(
-						'thumbsup' => (string) $image->votes->thumbsup,
-						'thumbsdown' => (string) $image->votes->thumbsdown,
-					);
-					$i++;
-				}
-				return $images;
-			}
-			else {
-				return FALSE;
-			}
-		}
-		else {
-			// Give a 91 error if incorrect variables are used
-			$this->handleError(91, 'You must include artist variable in the call for this method');
-			return FALSE;
-		}
-	}
 	
 	/**
 	 * Get the metadata for an artist on Last.fm. Includes biography.
@@ -628,55 +573,59 @@ class lastfmApiArtist extends lastfmApi {
 		}
 	}
 	
+	
+	
 	/**
 	 * Search for an artist by name. Returns artist matches sorted by relevance
 	 * @param array $methodVars An array with the following required value: <i>artist</i> and optional values: <i>limite</i>, <i>page</i>
 	 * @return array
 	 */
 	public function search($methodVars) {
-		// Check for required variables
-		if ( !empty($methodVars['artist']) ) {
-			$vars = array(
-				'method' => 'artist.search',
-				'api_key' => $this->auth->apiKey
-			);
-			$vars = array_merge($vars, $methodVars);
-			
-			if ( $call = $this->apiGetCall($vars) ) {
-				$opensearch = $call->results->children('http://a9.com/-/spec/opensearch/1.1/');
-				if ( $opensearch->totalResults > 0 ) {
-					$searchResults['totalResults'] = (string) $opensearch->totalResults;
-					$searchResults['startIndex'] = (string) $opensearch->startIndex;
-					$searchResults['itemsPerPage'] = (string) $opensearch->itemsPerPage;
-					$i = 0;
-					foreach ( $call->results->artistmatches->artist as $artist ) {
-						$searchResults['results'][$i]['name'] = (string) $artist->name;
-						$searchResults['results'][$i]['mbid'] = (string) $artist->mbid;
-						$searchResults['results'][$i]['url'] = (string) $artist->url;
-						$searchResults['results'][$i]['streamable'] = (string) $artist->streamable;
-						$searchResults['results'][$i]['image']['small'] = (string) $artist->image_small;
-						$searchResults['results'][$i]['image']['large'] = (string) $artist->image;
-						$i++;
-					}
+			// Check for required variables
+			if ( !empty($methodVars['artist']) ) {
+					$vars = array(
+							'method' => 'artist.search',
+							'api_key' => $this->auth->apiKey
+					);
+					$vars = array_merge($vars, $methodVars);
 					
-					return $searchResults;
-				}
-				else {
-					// No tagsare found
-					$this->handleError(90, 'No results');
-					return FALSE;
-				}
+					if ( $call = $this->apiGetCall($vars) ) {
+							$opensearch = $call->results->children('http://a9.com/-/spec/opensearch/1.1/');
+							if ( $opensearch->totalResults > 0 ) {
+									$searchResults['totalResults'] = (string) $opensearch->totalResults;
+									$searchResults['startIndex'] = (string) $opensearch->startIndex;
+									$searchResults['itemsPerPage'] = (string) $opensearch->itemsPerPage;
+									$i = 0;
+									foreach ( $call->results->artistmatches->artist as $artist ) {
+											$searchResults['results'][$i]['name'] = (string) $artist->name;
+											$searchResults['results'][$i]['mbid'] = (string) $artist->mbid;
+											$searchResults['results'][$i]['url'] = (string) $artist->url;
+											$searchResults['results'][$i]['streamable'] = (string) $artist->streamable;
+											$searchResults['results'][$i]['image']['small'] = (string) $artist->image_small;
+											$searchResults['results'][$i]['image']['large'] = (string) $artist->image;
+											$i++;
+									}
+									
+									return $searchResults;
+							}
+							else {
+									// No tagsare found
+									$this->handleError(90, 'No results');
+									return FALSE;
+							}
+					}
+					else {
+							return FALSE;
+					}
 			}
 			else {
-				return FALSE;
+					// Give a 91 error if incorrect variables are used
+					$this->handleError(91, 'You must include artist varialbe in the call for this method');
+					return FALSE;
 			}
-		}
-		else {
-			// Give a 91 error if incorrect variables are used
-			$this->handleError(91, 'You must include artist varialbe in the call for this method');
-			return FALSE;
-		}
 	}
+	
+	
 	
 	/**
 	 * Share an artist with Last.fm users or other friends. (Requires full auth)
