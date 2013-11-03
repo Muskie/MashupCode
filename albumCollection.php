@@ -3,7 +3,7 @@
      * Class to create a collection of records/albums/cds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 1.5
+     * @version 1.5.1
      * This started as a simple class to represent a collection of music,
      * a physical collection or virtual that then can be easily manipulated just like a crate of LPs.
      * This class mainly returns information in the form of strings (sometimes JSON encoded), arrays, and XML objects
@@ -1020,7 +1020,7 @@
          		$trackXML = $this->amazonAPI->getItemAttributesByAsin($potentialTrack->ASIN);
          		// need to check that the track is a track and not an album
          		
-         		if(strcmp($trackXML->Items->Item->ItemAttributes->ProductGroup, "Digital Music Track") == 0)
+         		if((isset($trackXML->Items->Item->ItemAttributes->ProductGroup)) && strcmp($trackXML->Items->Item->ItemAttributes->ProductGroup, "Digital Music Track") == 0)) // This is thowing an error 
          		{
          			$amazonTracks[$i]['title'] = $trackXML->Items->Item->ItemAttributes->Title;
          			$amazonTracks[$i]['URL'] = $trackXML->Items->Item->DetailPageURL;  // Not a preview, still can't get preview out of Amazon API
