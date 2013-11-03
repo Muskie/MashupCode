@@ -7,7 +7,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4.1
+     * @version 1.4.2
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -283,7 +283,7 @@
 					try
 					{
 						$formattedArtistString = str_replace(' ', '+', $artistName);
-						$iTunesSearchString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedArtistString . '&entity=musicArtist';
+						$iTunesSearchString = 'https://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedArtistString . '&entity=musicArtist';
 						$searchResult = fetchThisURL($iTunesSearchString);
 						$iTunesInfo = json_decode($searchResult);
 					}
@@ -465,6 +465,7 @@
 		public function getCurrentArtistPhotosFromFlickr()
 		{
 			// Returns an associated array.  I fetch extra image URLs: t = tiny, s = small, m = medium, o = oversized or something...
+			// Should allow client to specify number of images per page perhaps, changing from 5 to 4 now...
 			
 			// I need to build an associative array of arguments as this method/API call has so damn many:
 			// http://www.flickr.com/services/api/flickr.photos.search.html
@@ -473,7 +474,7 @@
 							'text' => $this->currentArtist(),
 							'sort' => 'relevance',
 							'content_type' => 1,
-							'per_page' => 5,
+							'per_page' => 4,
 							'extras' => 'url_t, url_s, url_m, url_o'
 						);
 			
@@ -505,8 +506,7 @@
 					try
 					{
 						// First get all the albums by an artist using a lookup request
-						//http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?id=909253&entity=album
-						$iTunesLookUpString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?id=' . $iTunesID . '&entity=album';
+						$iTunesLookUpString = 'https://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?id=' . $iTunesID . '&entity=album';
 						$lookUpResult = fetchThisURL($iTunesLookUpString);
 						// Now we have the look up results but we need to find the $iTunesID for the correct album then get the tracks that go with it 
 						// We need collectionName to equal $albumName
@@ -536,8 +536,7 @@
 							{
 								// If collectionID isn't null... lookup album again in iTunes with tracks and that is what we really really want!
 								// cache and return...
-								//http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?upc=075678317729&entity=song
-								$newLookupString = 'http://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?id=' . $collectionID . '&entity=song';
+								$newLookupString = 'https://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsLookup?id=' . $collectionID . '&entity=song';
 								$newLookUpResult = fetchThisURL($newLookupString);
 								$iTunesInfo = json_decode($newLookUpResult); 
 								
