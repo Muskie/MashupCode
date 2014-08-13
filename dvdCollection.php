@@ -3,7 +3,7 @@
      * Class to create a collection of dvds
      * @author Muskie McKay
      * @link http://www.muschamp.ca
-     * @version 0.8.1
+     * @version 0.8.2
      * This is a simple subclass of mCollection.php to show that it could be used for mashups not related to music.
      * 
      * This class inherrits from movieCollection.php which inherrits from mCollection.php
@@ -96,13 +96,7 @@
 				}
 				else if ( strcmp($movieInfo->posters->profile, dvdCollection::NO_ROTTEN_TOMATOE_POSTER_URL) != 0) 
 				{ 
-					$dvdCoverURL = $movieInfo->posters->profile;  // This uses an image from Rotten Tomatoes instead.
-				}
-
-				else
-				{
-					// no results (images) found in Amazon.com or Rotten Tomatoes 
-					// With no cover there is nothing to display, so iterate again
+					$dvdCoverURL = $movieInfo->posters->profile;  // This uses an image from Rotten Tomatoes
 				}
 				
 				if(( ! empty($dvdCoverURL)) && ($movieInfo != NULL))
@@ -198,17 +192,17 @@
          *
          * @return the currentMember as array 
          */
-         public function randomDVDWithDetails()
+ 		public function randomDVDWithDetails()
          {
          	$isInRottenTomatoes = false;
          	$isInAmazon = false;
          	$isNotByVarious = false;
          	
-         	// My mashup relies on this method to choose random DVDs/films, the problem is I have the DVD title not the film title, I needed a method 
-         	// that strips stuff from the data in the second array cell.
+         	// My mashup relies on this method to choose random DVDs/films, the problem is I have the DVD title not the film title, I needed a 
+         	// method that strips stuff from the data in the second array cell.
          	
-         	// It is possible for this to run until timeout of 30 seconds when say Rotten Tomatoes suddenly changes their API, so I rewrote the method 
-         	// to only check each member of the collection once then throw an error.
+         	// It is possible for this to run until timeout of 30 seconds when say Rotten Tomatoes suddenly changes their API, so I rewrote the 
+         	// method to only check each member of the collection once then throw an error.
          	
          	$newIndex = rand(0, ($this->collectionSize() - 1));
          	$this->currentMemberIndex = $newIndex;
@@ -225,10 +219,9 @@
 				$amazonXML = $this->getXMLFromAmazon($dvdTitle, $director);
 				$movieInfo = $this->searchRottenTomatoesFor($betterFilmTitle, $director); 
 		
-				if ((( ! empty($amazonXML)) 
-					&& ( $amazonXML->Items->TotalResults > 0)) 
-					&& ($movieInfo != null)
-					&& (strcasecmp($director, 'various') != 0))
+				if ((strcasecmp($director, 'various') != 0) 
+					&& (( ! empty($amazonXML)) && ( $amazonXML->Items->TotalResults > 0)) 
+					&& ($movieInfo != null))
 				{
 					$isInAmazon = true;
 					$isInRottenTomatoes = true;
@@ -486,10 +479,12 @@
 			// Need to decode results...
 			$bestBuyData = json_decode($searchResults);
 			
+			/*
 			print("<pre>");
 			print_r($bestBuyData);
 			print("</pre>");
-        
+        	*/
+        	
         /*
         	if($bestBuyData != null)
         	{

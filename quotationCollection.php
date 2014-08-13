@@ -12,7 +12,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.2
+     * @version 1.3.1
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -231,7 +231,7 @@
 			else
 			{ 
 				// This works for most everyone else but for popular names like Joe Smith will not. 
-				// Famous people like Albert Einstein and Nietzsch seem to not be successfully found even given full name
+				// Famous people like Albert Einstein and Nietzsche seem to not be successfully found even giving this method their full name
 				$result = $this->searchWikipediaFor($quotation[0]);
 			}
 			
@@ -481,7 +481,7 @@
 		{
 			// The tweet this button will add a link like:
 			// http://t.co/uO4Piib
-			// That is 18 characters long, plus white space, call it 20, so quotations need a length of less than 120 characters are tweetable.
+			// That is 18 characters long, plus white space, call it 20, so quotations need a length of less than 120 characters to be 'tweetable'.
 			
 			// I've decided to try tweeting longer quotations, tweeting the first say 100 characters adding a " to the front and a ... to the back
 			
@@ -498,11 +498,14 @@
 	   
 	   
 	  /**
-	   * This method looks at a variety of sources in descending priority to find a decent sized image of the author/source of the quotation 
+	   * This method looks at a variety of sources in descending priority to find a decent sized image of the author/source of the quotation. It 
+	   * also takes in a boolean so you can request a bigger image, alas last.fm doesn't return any truly large images at this time.
+	   *
+	   * @param boolean
 	   *
 	   * @return string representing URL to image 
 	   */
-	   public function authorImageForCurrentQuotation()
+	   public function authorImageForCurrentQuotation($bigImage = false)
 	   {
 	   		$imageURL = NULL;
 	   		// Wikipedia doesn't have very useful images returned in their API.  
@@ -512,7 +515,25 @@
 	   		if($this->isCurrentQuotationFromAFilm())
 			{
 				$movieInfo = $this->searchRottenTomatoesFor($this->currentQuotationSource(), $this->currentQuotationFilmDirector());
-				$imageURL = $movieInfo->posters->detailed; // Could use a smaller image... see http://developer.rottentomatoes.com/docs
+				if ( ! empty($movieInfo))
+				{
+					if ($bigImage)
+					{
+						$imageURL = $movieInfo->posters->original; 
+					}
+					else
+					{
+						$imageURL = $movieInfo->posters->detailed; 
+					}
+				}
+				else
+				{
+				// Rotten Tomatoes has stopped working for me and many others, so more code must be written and an alternative source for movie posters found
+				// Wikipedia could be made to work
+					$movieInfo = $this->searchWikipediaFor($this->currentQuotationSource());
+					
+				}
+				
 			}
 			else if(($this->isCurrentQuotationFromASong()) || ($this->isCurrentQuotationFromAMusician())) 
 			{
@@ -524,7 +545,17 @@
 					// Not sure why this didn't work for Bob Marley, Last.fm may have made changes and no one really maintains the PHP API code 
 					try
 					{
-						$imageURL = $lastFMImageArray['largeURL'];  
+						if ($bigImage)
+						{
+							// What if I pass in the YouTube video instead? 
+							// Need to write a new method or cut and paste some code... 
+							// supposedly they might make larger images available... 
+							$imageURL = $lastFMImageArray['largeURL'];
+						}
+						else
+						{
+							$imageURL = $lastFMImageArray['largeURL']; // large isn't very large on last.fm 
+						}
 					}
 					catch(Exception $e)
 					{
@@ -537,11 +568,19 @@
 			{
 				// We have a quotation by a person or ficticious character
 				// Amazon isn't perfect but testing revealed it was superior to Wikipedia 
+				// I would prefer another option for images, Amazon book covers have gotten boring.
 				$amazonXML = $this->getInfoFromAmazonForCurrentQuotation();
 				if ((( ! empty($amazonXML)) 
 					&& ($amazonXML->Items->TotalResults > 0)))
 				{
-					$imageURL = $amazonXML->Items->Item->MediumImage->URL;
+					if ($bigImage)
+					{
+						$imageURL = $amazonXML->Items->Item->LargeImage->URL; // Bigger images are better now in social media 
+					}
+					else
+					{
+						$imageURL = $amazonXML->Items->Item->MediumImage->URL; 
+					}
 				}
 			}
 			
@@ -552,11 +591,19 @@
 				$flickrResults = $this->getCurrentArtistPhotosFromFlickr();
 				if ( ! empty($flickrResults['photo']))
 				{
-					$imageURL = $flickrResults['photo'][0]['url_s'];
-					// Got Undefined Offset error once...
-					// May have to surround this with a try catch construct
+					if ($bigImage && array_key_exists('url_o', $flickrResults['photo'][0]))
+					{
+						// array_key_exists is a useful function to know, too bad I spent years coding in PHP without it.
+						$imageURL = $flickrResults['photo'][0]['url_o'];
+					}
+					else
+					{
+						$imageURL = $flickrResults['photo'][0]['url_s'];
+					}
 				} 
 			}
+			
+			// Can still be empty... Need a default image like for album covers...
 			
 			return $imageURL;
 	   }
@@ -675,7 +722,10 @@
 				print("</pre>");
 				*/
 				// Some films have no synopsis in Rotten Tomatoes, can't use critics_consensus instead as it does not always exist for every result either!
-				$bio = $movieInfo->synopsis;
+				if ( ! empty($movieInfo))
+				{
+					$bio = $movieInfo->synopsis;
+				}
 			}
 			else if(($this->isCurrentQuotationFromASong()) || ($this->isCurrentQuotationFromAMusician())) 
 			{
@@ -696,6 +746,8 @@
 				$wikiXML = $this->wikipediaInfoForCurrentQuotation();
 				$bio = $wikiXML->Section->Item->Description;
 			}
+			
+			// I should clean this string before returning it.
 			
 			return $bio;
          }
@@ -767,8 +819,8 @@
          
          
         /**
-         * This method creates a fully functional "Tweet This" button.  You don't need to register an app with Twitter to do this.
-         * It uses Twitter's latest Javascript but takes in two arguments, both strings, apparently you shouldn't URL encode the URL.
+         * This method helps create a "Tweet This" button. I now use asynchronous JavaScript and added Google Analytics tracking. You need to 
+         * include JavaScript in the head as well as calling this method where you want the button to appear.
          *
          * More information on Twitter buttons can be found here:
          * https://dev.twitter.com/docs/tweet-button
@@ -782,25 +834,24 @@
          	$tweetThisButtonCode = null;
          	
          	// We should also strip the quotation passed in of junk and HTML tags...
+         	// This isn't working exactly how I want. Maybe a different way to encode newline.
          	$newLinesVersion = str_replace('<br />', "\n", $quotation);
          	$quotationWithNewLine = $newLinesVersion . "\n";
          	
          	if($this->isCurrentQuotationTweetable())
          	{
-         		$openingTag = '<a href="http://twitter.com/share" class="twitter-share-button" data-url="' . $twitterDataURL . '" data-text="' . strip_tags($quotationWithNewLine) . '">';
-         		$closingTag = '</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>';
+         		$openingTag = '<a href="http://twitter.com/share" class="twitter-share-button" data-url="' . $twitterDataURL . '" data-text="' . strip_tags($quotationWithNewLine) . '">Tweet</a>'; // Strip tags is redundant
+         		// $closingTag = '</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>';
          	}
          	else
          	{
          		// Need to chomp then Tweet.
          		$excerpt = substr(strip_tags($quotationWithNewLine), 0, 100) . '...';
-         		$openingTag = '<a href="http://twitter.com/share" class="twitter-share-button" data-url="' . $twitterDataURL . '" data-text="' . $excerpt . '">';
-         		$closingTag = '</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>';	
+         		$openingTag = '<a href="http://twitter.com/share" class="twitter-share-button" data-url="' . $twitterDataURL . '" data-text="' . $excerpt . '">Tweet</a>';
+         		// $closingTag = '</a><script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>';	
          	}
-         	
-         	// Try not encoding $twitterDataURL, seems to work this way and not the other...
 
-         	$tweetThisButtonCode = $openingTag . "Tweet" . $closingTag;
+         	$tweetThisButtonCode = $openingTag;
          	
          	return $tweetThisButtonCode;
          }

@@ -6,7 +6,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 0.7.2
+     * @version 0.7.3
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -103,9 +103,11 @@
 						
 						$lookUpResult = fetchThisURL($query);
 						
-						// print("<pre>");
-						// print_r($lookUpResult);
-						// print("</pre>");
+						/*
+						print("<pre>");
+						print_r($lookUpResult);
+						print("</pre>");
+						*/
 						 
 						// decode the json data to make it easier to parse the php
 						$searchResults = json_decode($lookUpResult);
@@ -113,28 +115,29 @@
 						if ( ! empty($searchResults))
 						{
 						  // Now need to iterate to the first movie, cache it and return it...
-						  
-						  foreach($searchResults->movies as $movie)  // We're not finding data on movies like I was
-						  {
-						  	// I'm a bit worried as IMDBAPI is in trouble and this method may become much more important that it funcitons perfectly
-						  	$newAPIURL = $movie->links->self;
-						  	$targetURL = $newAPIURL . '?apikey=' . myInfo::MY_ROTTEN_TOMATOES_KEY;
-						  	$nextLookUp = fetchThisURL($targetURL);
-						  	$possibleMatch = json_decode($nextLookUp);
-
-						  	if( strcasecmp($possibleMatch->abridged_directors[0]->name, $director) == 0)
+							if ( ! empty($searchResults->movies))
 						  	{
-						  		// This is the best match 
-						  		$movieInfo = $possibleMatch;
-						  	}
-						  }
-						  
-						  if($movieInfo == NULL)
-						  {
-						  	$movieInfo = $searchResults->movies[0];  // Trust Rotten Tomatoes regarding best match, this is a fallback option
-						  	// I thought this might always happen, but it will always happen if you don't know the director!
-						  }
-						  
+							  foreach($searchResults->movies as $movie)  // We're not finding data on movies like I was
+							  {
+								// I'm a bit worried as IMDBAPI is in trouble and this method may become much more important that it funcitons perfectly
+								$newAPIURL = $movie->links->self;
+								$targetURL = $newAPIURL . '?apikey=' . myInfo::MY_ROTTEN_TOMATOES_KEY;
+								$nextLookUp = fetchThisURL($targetURL);
+								$possibleMatch = json_decode($nextLookUp);
+	
+								if( strcasecmp($possibleMatch->abridged_directors[0]->name, $director) == 0)
+								{
+									// This is the best match 
+									$movieInfo = $possibleMatch;
+								}
+							  }
+							  if($movieInfo == NULL)
+						  	  {
+								$movieInfo = $searchResults->movies[0];  // Trust Rotten Tomatoes regarding best match, this is a fallback option
+								// I thought this might always happen, but it will always happen if you don't know the director!
+						  	  }
+							}
+					
 						  $serializedObject = serialize($movieInfo);
 						  $myCache->saveSerializedDataToFile($serializedObject);
 						}
@@ -151,7 +154,7 @@
 				}
 			}
 			
-			return $movieInfo;
+			return $movieInfo; // If Rotten Tomatoes decides to deny you access, you will get NULL 
 		}	
 		
 		
@@ -274,7 +277,7 @@
 					try
 					{
 						$encodedTitle = urlencode ( $filmTitle );
-						$queryURL = 'http://www.imdbapi.com/?t=' . $encodedTitle . '&plot=full';  // I prefer the long version of the plot
+						$queryURL = 'http://www.omdbapi.com/?t=' . $encodedTitle . '&plot=full';  // I prefer the long version of the plot
 						$queryResult = fetchThisURL($queryURL);
 						$movieInfo = json_decode($queryResult);
 					}
@@ -292,6 +295,13 @@
 					$movieInfo =  $myCache->getUnserializedData();
 				}
 			}
+			
+			/*
+			// We need to see if this method is still reliable, given Amazon's litigation. Works but not for posters.
+			print("<pre>");
+			print_r($movieInfo);
+			print("</pre>");
+			*/
 
 			return $movieInfo;
 	   }

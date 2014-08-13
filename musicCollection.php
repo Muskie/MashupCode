@@ -7,7 +7,7 @@
 	 *
 	 * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.4.2
+     * @version 1.4.3
 	 * @copyright Muskie McKay
 	 * @license MIT
 	 */
@@ -283,6 +283,7 @@
 					try
 					{
 						$formattedArtistString = str_replace(' ', '+', $artistName);
+						// This string needs to change perhaps, not necessarily, maybe there are no previews anymore...
 						$iTunesSearchString = 'https://ax.itunes.apple.com/WebObjects/MZStoreServices.woa/wa/wsSearch?term=' . $formattedArtistString . '&entity=musicArtist';
 						$searchResult = fetchThisURL($iTunesSearchString);
 						$iTunesInfo = json_decode($searchResult);
@@ -357,7 +358,7 @@
 				$this->facebook->setDecodeJson(true);
 				$possibleArtists = $this->facebook->search('page', $artistName);  
 				
-				if($possibleArtists->data != null )  // This is giving me grief for various artists...
+				if(($possibleArtists != null) && ( ! empty($possibleArtists->data)))  // This is giving me grief for various artists...
 				{
 					$firstID = $possibleArtists->data[0]->id;
 					
@@ -377,6 +378,7 @@
 						throw new Exception("Not getting a string in JSON format, got " . $resultingString);
 					}
 				} 
+
 			}
 			
 			return $facebookPage;
@@ -602,6 +604,9 @@
 		 {
 		 	$sampleURL = '';
 		 	
+		 	// SOMETHING is going wrong, I'm not getting audio previews from iTunes, I've added conditionals to prevent errors but this 
+		 	// was a killer feature of the mashup code base...
+		 	
 		 	// Check input
 		 	if (( ! empty($songTitle)) && ( ! empty($albumTitle)) && ( ! empty($artistName)))
 		 	{
@@ -631,7 +636,8 @@
 		 	{		 		
 				$iTunesArtistInfo = $this->getArtistResultsFromITunes($artistName);
 				
-				if ( count($iTunesArtistInfo->results) > 0)  // insufficient $iTunesArtistInfo != null
+				// Had to change this if, but what changed elsewhere? Should read documentation yet again...
+				if (($iTunesArtistInfo != null) && ( count($iTunesArtistInfo->results) > 0))  
 				{
 					$iTunesAlbumInfo = $this->getAlbumAndTracksFromITunes($iTunesArtistInfo->results[0]->artistId, $albumTitle);
 					

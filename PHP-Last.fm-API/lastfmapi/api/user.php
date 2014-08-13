@@ -182,6 +182,7 @@ class lastfmApiUser extends lastfmApi {
 				$info['subscriber'] = (string) $call->user->subscriber;
 				$info['playcount'] = (string) $call->user->playcount;
 				$info['playlists'] = (string) $call->user->playlists;
+				$info['realname'] = (string) $call->user->realname;
 				
 				return $info;
 			}

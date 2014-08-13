@@ -3,7 +3,7 @@
      * Class to facilitate the creation of web mashups using various APIs.
      * @author Muskie McKay <andrew@muschamp.ca>
      * @link http://www.muschamp.ca
-     * @version 1.6
+     * @version 1.6.1
      * @copyright Muskie McKay
      * @license MIT
      *
@@ -418,7 +418,6 @@
 							);
 			
 			// Should this be search_tweets instead of just search? YES! Do my arguments have to be in an array? Not necessarily...
-			// Returns an array of objects, which really need to be displayed exactly. Use displayRecentTweetsFor() instead of this method
 			$searchResults = $this->codeBird->search_tweets($params);
 
 			
@@ -462,12 +461,7 @@
 					print($this_tweet->user->name . '</a>');
 					print('<a class="tweet-account-name" href="https://twitter.com/intent/user?user_id=' . $this_tweet->user->id_str . '">');
 					print('@' . $this_tweet->user->screen_name . '</a></p>');
-					
-					// I think Tweet time should be below tweet-text and the follow button in the top right...
-					
-					// Working but it is too damn long, can I remove the @ part? Yes but it still renders it, I think it is needed...
-					// The follow button works either way though there is no popup, instead the button turns grey but a trip to Twitter.com confirms I did follow them.
-					
+					 
 					print('<a href="https://twitter.com/' . $this_tweet->user->screen_name .  '" class="twitter-follow-button" data-show-count="false" data-dnt="true">Follow @' . $this_tweet->user->name . '</a>');
 
 					print('<div class="tweet-text">');
@@ -568,7 +562,8 @@
 				&& (preg_match('|^http?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $imageURL)) && (preg_match('|^http?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $pageURL)))
 			{
 				// If I don't display a valid image, no sense in showing a Pin It button 
-				$html = '<a href="http://pinterest.com/pin/create/button/?url=' . $pageURL . '&media=' . $imageURL . '&description=' . strip_tags($text) . '" class="pin-it-button" count-layout="horizontal" target="_blank"><img border="0" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a>';
+				// I now think I should urlencode() the three PHP varialbes...
+				$html = '<a href="http://pinterest.com/pin/create/button/?url=' . urlencode($pageURL) . '&media=' . urlencode($imageURL) . '&description=' . urlencode(strip_tags($text)) . '" class="pin-it-button" count-layout="horizontal" target="_blank"><img border="0" src="//assets.pinterest.com/images/PinExt.png" title="Pin It" /></a>';
 			}
 			
 			return $html;
@@ -697,7 +692,17 @@
 				$videoLink = $youTubeXML->entry->link[0]['href'];  // This is not enough, I need to trim the beginning and end off this to just get the video code
 				$trimedURL = str_replace('http://www.youtube.com/watch?v=', '' , $videoLink);
 				$videoCode = str_replace('&feature=youtube_gdata', '', $trimedURL);
-				$embeddableVideoClipHTML = '<iframe id="ytplayer" type="text/html" width="640" height="360" src="https://www.youtube.com/embed/' . $videoCode . '"frameborder="0" allowfullscreen>';
+				// Google wants a totally new way of displaying videos, which I think I need for the Google+ button to work.
+				// Was Using:
+				//$embeddableVideoClipHTML = '<iframe id="ytplayer" type="text/html" width="640" height="360" src="https://www.youtube.com/embed/' . $videoCode . '"frameborder="0" allowfullscreen>';
+				// Now follow this: https://developers.google.com/youtube/js_api_reference#Embedding
+				$embeddableVideoClipHTML .= '<object width="640" height="360">';
+				$embeddableVideoClipHTML .= '<param name="movie" value="https://www.youtube.com/v/' . $videoCode .'?version=3"></param>';
+				$embeddableVideoClipHTML .= '<param name="allowFullScreen" value="true"></param>';
+				$embeddableVideoClipHTML .= '<param name="allowScriptAccess" value="always"></param>';
+				$embeddableVideoClipHTML .= '<embed src="https://www.youtube.com/v/' . $videoCode . '?version=3" type="application/x-shockwave-flash" allowfullscreen="true" allowScriptAccess="always" width="640" height="360"></embed>';
+				$embeddableVideoClipHTML .= '</object>';
+			
 			}
 			
 			return $embeddableVideoClipHTML;

@@ -135,6 +135,12 @@ class lastfmApiAlbum extends lastfmApi {
 					$i++;
 				}
 			}
+			
+			// New data apparently
+			$info['wiki'] = array(
+				'summary'=>(string) $call->album->wiki->summary,
+				'content'=>(string) $call->album->wiki->content
+			);
 	
 			if ( ! empty($call->album->tracks))
 			{
@@ -143,6 +149,8 @@ class lastfmApiAlbum extends lastfmApi {
 					// This is identical to how tags is done...
 					$info['tracks'][$n]['name'] = (string) $call->album->tracks->track[$n]->name;
 					$info['tracks'][$n]['url'] = (string) $call->album->tracks->track[$n]->url;
+					$info['tracks'][$n]['rank'] =(string) $call->album->tracks->track[$n]['rank'][0];
+            		$info['tracks'][$n]['duration'] = (string) $call->album->tracks->track[$n]->duration;
 				}
 			}
 			

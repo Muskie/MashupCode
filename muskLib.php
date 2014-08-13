@@ -2,18 +2,15 @@
 
 // Since I often had to do this, now I can do it in a single line of code
 function createArrayFromCSVFile($fileName)
-{
-	$myArray = array();
-	$file = fopen($fileName, 'r');
-	
-	while (($result = fgetcsv($file)) !== false)
+{	
+	if(!file_exists($fileName))
 	{
-		$myArray[] = $result;
-	}
-	
-	fclose($file);
-	
-	return $myArray;
+        return array();
+    }
+    
+    $myArray = array_map('str_getcsv', file($fileName));
+
+    return $myArray;
 }
 
 
@@ -30,6 +27,7 @@ function fetchThisURL($url)
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); 
 	
 	//lets add in a user agent
+	// Wikipedia demands I tell them who I am, maybe I can use some other technique specific to searching Wikipedia
 	curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 6.1; he; rv:1.9.2.8) Gecko/20100722 Firefox/3.6.8');
 
 	// variable contains the output string 
